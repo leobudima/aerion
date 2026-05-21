@@ -789,12 +789,40 @@ func (a *App) Archive(messageIDs []string) error {
 	}
 
 	// Get first message to determine account
-	messages, err := a.messageStore.GetByIDs(messageIDs[:1])
-	if err != nil || len(messages) == 0 {
+	firstMessages, err := a.messageStore.GetByIDs(messageIDs[:1])
+	if err != nil || len(firstMessages) == 0 {
 		return fmt.Errorf("failed to get message")
 	}
 
-	archiveFolder, err := a.GetSpecialFolder(messages[0].AccountID, folder.TypeArchive)
+	accountID := firstMessages[0].AccountID
+
+	// Gmail doesn't expose Archive as a normal destination mailbox. Archiving
+	// is removing the current label so the message remains in All Mail.
+	if a.isGmailAccount(accountID) {
+		messages, err := a.messageStore.GetByIDs(messageIDs)
+		if err != nil {
+			return fmt.Errorf("failed to get messages: %w", err)
+		}
+
+		var labelMessages []*message.Message
+		for _, m := range messages {
+			sourceFolder, err := a.folderStore.Get(m.FolderID)
+			if err != nil {
+				return fmt.Errorf("failed to get source folder: %w", err)
+			}
+			if sourceFolder == nil {
+				return fmt.Errorf("source folder not found: %s", m.FolderID)
+			}
+			if sourceFolder.Type == folder.TypeAll {
+				continue
+			}
+			labelMessages = append(labelMessages, m)
+		}
+
+		return a.gmailRemoveLabel(labelMessages)
+	}
+
+	archiveFolder, err := a.GetSpecialFolder(accountID, folder.TypeArchive)
 	if err != nil {
 		return fmt.Errorf("failed to get archive folder: %w", err)
 	}
