@@ -29,6 +29,7 @@
     accentBarUnread: boolean
     showMessageListCircles: boolean
     showViewerCircles: boolean
+    groupMessagesByDate: boolean
     darkMailContent: boolean
   }
 
@@ -53,6 +54,7 @@
     accentBarUnread = $bindable(),
     showMessageListCircles = $bindable(),
     showViewerCircles = $bindable(),
+    groupMessagesByDate = $bindable(),
     darkMailContent = $bindable(),
   }: Props = $props()
 
@@ -320,6 +322,22 @@
       </div>
     </div>
 
+    <!-- Group message list by date -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <Label for="group-messages-by-date">{$_('settingsGeneral.groupMessagesByDate')}</Label>
+          <p class="text-xs text-muted-foreground">
+            {$_('settingsGeneral.groupMessagesByDateHelp')}
+          </p>
+        </div>
+        <Switch
+          id="group-messages-by-date"
+          bind:checked={groupMessagesByDate}
+        />
+      </div>
+    </div>
+
     <div class="space-y-2">
       <Label>{$_('settingsGeneral.messageListDensity')}</Label>
       <Select.Root value={messageListDensity} onValueChange={handleDensityChange}>
@@ -442,4 +460,3 @@
   </div>
 
 </div>
-

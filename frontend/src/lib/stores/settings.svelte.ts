@@ -2,7 +2,7 @@
 // Provides reactive state for application settings
 
 // @ts-ignore - wailsjs path
-import { GetMessageListDensity, GetMessageListSortOrder, GetThemeMode, GetShowTitleBar, GetRunBackground, GetStartHidden, GetAutostart, GetLanguage, GetComposerMode, GetMailtoMode, GetComposerFormat, GetNativeTitleBar, GetAlwaysLoadImages, GetDarkMailContent, GetAccentBarUnread, GetShowMessageListCircles, GetShowViewerCircles } from '../../../wailsjs/go/app/App'
+import { GetMessageListDensity, GetMessageListSortOrder, GetThemeMode, GetShowTitleBar, GetRunBackground, GetStartHidden, GetAutostart, GetLanguage, GetComposerMode, GetMailtoMode, GetComposerFormat, GetNativeTitleBar, GetAlwaysLoadImages, GetDarkMailContent, GetAccentBarUnread, GetShowMessageListCircles, GetShowViewerCircles, GetGroupMessagesByDate } from '../../../wailsjs/go/app/App'
 import { setLocale as setI18nLocale } from '$lib/i18n'
 import { loadDateFnsLocale, getDateFnsLocale } from '$lib/i18n/dateFnsLocale'
 import type { Locale } from 'date-fns'
@@ -40,6 +40,7 @@ let darkMailContent = $state<boolean>(false)
 let accentBarUnread = $state<boolean>(false)
 let showMessageListCircles = $state<boolean>(true)
 let showViewerCircles = $state<boolean>(true)
+let groupMessagesByDate = $state<boolean>(true)
 
 // Getter functions to access the state
 export function getMessageListDensity(): MessageListDensity {
@@ -108,6 +109,10 @@ export function getShowMessageListCircles(): boolean {
 
 export function getShowViewerCircles(): boolean {
   return showViewerCircles
+}
+
+export function getGroupMessagesByDate(): boolean {
+  return groupMessagesByDate
 }
 
 export function getCurrentDateFnsLocale(): Locale | undefined {
@@ -187,10 +192,14 @@ export function setShowViewerCircles(v: boolean) {
   showViewerCircles = v
 }
 
+export function setGroupMessagesByDate(v: boolean) {
+  groupMessagesByDate = v
+}
+
 // Load settings from backend (call on app startup)
 export async function loadSettings(): Promise<ThemeMode> {
   try {
-    const [density, sortOrder, theme, titleBar, runBg, startHid, autoSt, lang, compMode, mailMode, compFormat, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles] = await Promise.all([
+    const [density, sortOrder, theme, titleBar, runBg, startHid, autoSt, lang, compMode, mailMode, compFormat, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
       GetMessageListDensity(),
       GetMessageListSortOrder(),
       GetThemeMode(),
@@ -208,6 +217,7 @@ export async function loadSettings(): Promise<ThemeMode> {
       GetAccentBarUnread(),
       GetShowMessageListCircles(),
       GetShowViewerCircles(),
+      GetGroupMessagesByDate(),
     ])
     messageListDensity = (density as MessageListDensity) || 'standard'
     messageListSortOrder = (sortOrder as MessageListSortOrder) || 'newest'
@@ -225,6 +235,7 @@ export async function loadSettings(): Promise<ThemeMode> {
     accentBarUnread = accentBar ?? false
     showMessageListCircles = listCircles ?? true
     showViewerCircles = viewerCircles ?? true
+    groupMessagesByDate = groupByDate ?? true
     // Apply saved language (if set, overrides system detection from initI18n)
     if (lang) {
       language = lang

@@ -34,6 +34,7 @@ const (
 	KeyAccentBarUnread           = "accent_bar_unread"
 	KeyShowMessageListCircles    = "show_message_list_circles"
 	KeyShowViewerCircles         = "show_viewer_circles"
+	KeyGroupMessagesByDate       = "group_messages_by_date"
 )
 
 // Density values for message list
@@ -58,35 +59,35 @@ const DefaultMessageListSortOrder = SortOrderNewest
 
 // Theme mode values
 const (
-	ThemeModeSystem      = "system"
-	ThemeModeLight       = "light"        // Default light purple
-	ThemeModeLightBlue   = "light-blue"   // New
-	ThemeModeLightOrange   = "light-orange"   // New
-	ThemeModeLightBalanced = "light-balanced" // New
-	ThemeModeAdwaitaLight  = "adwaita-light"  // Adwaita Light
-	ThemeModeBreezeLight   = "breeze-light"   // Breeze Light
-	ThemeModeDark          = "dark"           // Default dark purple
-	ThemeModeDarkGray     = "dark-gray"     // New
-	ThemeModeDarkBalanced = "dark-balanced" // New
-	ThemeModeAdwaitaDark  = "adwaita-dark"  // Adwaita Dark
-	ThemeModeBreezeDark   = "breeze-dark"   // Breeze Dark
+	ThemeModeSystem              = "system"
+	ThemeModeLight               = "light"                // Default light purple
+	ThemeModeLightBlue           = "light-blue"           // New
+	ThemeModeLightOrange         = "light-orange"         // New
+	ThemeModeLightBalanced       = "light-balanced"       // New
+	ThemeModeAdwaitaLight        = "adwaita-light"        // Adwaita Light
+	ThemeModeBreezeLight         = "breeze-light"         // Breeze Light
+	ThemeModeDark                = "dark"                 // Default dark purple
+	ThemeModeDarkGray            = "dark-gray"            // New
+	ThemeModeDarkBalanced        = "dark-balanced"        // New
+	ThemeModeAdwaitaDark         = "adwaita-dark"         // Adwaita Dark
+	ThemeModeBreezeDark          = "breeze-dark"          // Breeze Dark
 	ThemeModeCatppuccinLatte     = "catppuccin-latte"     // Catppuccin Latte
 	ThemeModeCatppuccinFrappe    = "catppuccin-frappe"    // Catppuccin Frappé
 	ThemeModeCatppuccinMacchiato = "catppuccin-macchiato" // Catppuccin Macchiato
 	ThemeModeCatppuccinMocha     = "catppuccin-mocha"     // Catppuccin Mocha
-	ThemeModeDracula         = "dracula"          // Dracula
-	ThemeModeGithubLight     = "github-light"     // GitHub Light
-	ThemeModeGithubDark      = "github-dark"      // GitHub Dark
-	ThemeModeGithubSoftDark  = "github-soft-dark" // GitHub Soft Dark
-	ThemeModeTokyoNight      = "tokyo-night"      // Tokyo Night
-	ThemeModeNordLight       = "nord-light"       // Nord Light
-	ThemeModeNordDark        = "nord-dark"        // Nord Dark
-	ThemeModePopLight        = "pop-light"        // Pop! Light
-	ThemeModePopDark         = "pop-dark"         // Pop! Dark
-	ThemeModeYaruLight       = "yaru-light"       // Yaru Light
-	ThemeModeYaruDark        = "yaru-dark"        // Yaru Dark
-	ThemeModeVSCodeLight     = "vs-code-light"    // VS Code Light
-	ThemeModeVSCodeDark      = "vs-code-dark"     // VS Code Dark
+	ThemeModeDracula             = "dracula"              // Dracula
+	ThemeModeGithubLight         = "github-light"         // GitHub Light
+	ThemeModeGithubDark          = "github-dark"          // GitHub Dark
+	ThemeModeGithubSoftDark      = "github-soft-dark"     // GitHub Soft Dark
+	ThemeModeTokyoNight          = "tokyo-night"          // Tokyo Night
+	ThemeModeNordLight           = "nord-light"           // Nord Light
+	ThemeModeNordDark            = "nord-dark"            // Nord Dark
+	ThemeModePopLight            = "pop-light"            // Pop! Light
+	ThemeModePopDark             = "pop-dark"             // Pop! Dark
+	ThemeModeYaruLight           = "yaru-light"           // Yaru Light
+	ThemeModeYaruDark            = "yaru-dark"            // Yaru Dark
+	ThemeModeVSCodeLight         = "vs-code-light"        // VS Code Light
+	ThemeModeVSCodeDark          = "vs-code-dark"         // VS Code Dark
 )
 
 // DefaultThemeMode is the default theme mode
@@ -295,6 +296,28 @@ func (s *Store) SetShowViewerCircles(enabled bool) error {
 		v = "true"
 	}
 	return s.Set(KeyShowViewerCircles, v)
+}
+
+// GetGroupMessagesByDate returns whether messages are grouped by date in the
+// message list. Default: true.
+func (s *Store) GetGroupMessagesByDate() (bool, error) {
+	value, err := s.Get(KeyGroupMessagesByDate)
+	if err != nil {
+		return true, err
+	}
+	if value == "" {
+		return true, nil
+	}
+	return value == "true", nil
+}
+
+// SetGroupMessagesByDate enables or disables date grouping in the message list.
+func (s *Store) SetGroupMessagesByDate(enabled bool) error {
+	v := "false"
+	if enabled {
+		v = "true"
+	}
+	return s.Set(KeyGroupMessagesByDate, v)
 }
 
 // GetMessageListSortOrder returns the current message list sort order

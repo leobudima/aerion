@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
   import Icon from '@iconify/svelte'
+  import { format, isToday } from 'date-fns'
   import ConversationRow from './ConversationRow.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { cn } from '$lib/utils'
@@ -14,7 +15,7 @@
   import { message } from '../../../../wailsjs/go/models'
   // @ts-ignore - wailsjs runtime
   import { EventsOn, EventsOff } from '../../../../wailsjs/runtime/runtime'
-  import { getMessageListDensity, getMessageListSortOrder, setMessageListSortOrder } from '$lib/stores/settings.svelte'
+  import { getCurrentDateFnsLocale, getGroupMessagesByDate, getMessageListDensity, getMessageListSortOrder, setMessageListSortOrder } from '$lib/stores/settings.svelte'
   import { accountStore } from '$lib/stores/accounts.svelte'
   import { getLayoutMode, hideViewer } from '$lib/stores/layout.svelte'
   import { isDialogGuardActive } from '$lib/stores/dialogGuard'
@@ -718,6 +719,84 @@
       : totalCount
   )
 
+  type DateGroupItem = {
+    conversation: any
+    index: number
+  }
+
+  type DateGroup = {
+    key: string
+    label: string
+    isToday: boolean
+    items: DateGroupItem[]
+  }
+
+  let expandedDateGroups = $state<Set<string>>(new Set())
+  let collapsedDateGroups = $state<Set<string>>(new Set())
+
+  function getConversationDate(conversation: any): Date {
+    const date = new Date(conversation.latestDate)
+    if (Number.isNaN(date.getTime())) {
+      return new Date(0)
+    }
+    return date
+  }
+
+  function getDateGroupKey(date: Date): string {
+    return format(date, 'yyyy-MM-dd')
+  }
+
+  function getDateGroupLabel(date: Date): string {
+    return format(date, 'MMM d, yyyy', { locale: getCurrentDateFnsLocale() })
+  }
+
+  const groupedConversations = $derived((() => {
+    const groups: DateGroup[] = []
+    const groupByKey = new Map<string, DateGroup>()
+
+    conversations.forEach((conversation, index) => {
+      const date = getConversationDate(conversation)
+      const key = getDateGroupKey(date)
+      let group = groupByKey.get(key)
+      if (!group) {
+        group = {
+          key,
+          label: getDateGroupLabel(date),
+          isToday: isToday(date),
+          items: [],
+        }
+        groupByKey.set(key, group)
+        groups.push(group)
+      }
+      group.items.push({ conversation, index })
+    })
+
+    return groups
+  })())
+
+  function isDateGroupExpanded(group: DateGroup): boolean {
+    if (collapsedDateGroups.has(group.key)) return false
+    if (expandedDateGroups.has(group.key)) return true
+    return group.isToday
+  }
+
+  function toggleDateGroup(group: DateGroup) {
+    const expanded = isDateGroupExpanded(group)
+    const nextExpanded = new Set(expandedDateGroups)
+    const nextCollapsed = new Set(collapsedDateGroups)
+
+    if (expanded) {
+      nextExpanded.delete(group.key)
+      nextCollapsed.add(group.key)
+    } else {
+      nextCollapsed.delete(group.key)
+      nextExpanded.add(group.key)
+    }
+
+    expandedDateGroups = nextExpanded
+    collapsedDateGroups = nextCollapsed
+  }
+
   function toggleSetEntry(set: Set<string>, key: string) {
     if (set.has(key)) {
       set.delete(key)
@@ -1145,15 +1224,17 @@
     if (!selectedThreadId || !listContainerRef) return
     const index = activeList.findIndex(c => c.threadId === selectedThreadId)
     if (index < 0) return
-    const rows = listContainerRef.querySelectorAll('[data-conversation-row]')
-    const row = rows[index] as HTMLElement | undefined
-    if (!row) return
-    const rect = row.getBoundingClientRect()
-    row.dispatchEvent(new MouseEvent('contextmenu', {
-      bubbles: true,
-      clientX: rect.right,
-      clientY: rect.top + rect.height / 2,
-    }))
+    scrollToIndex(index)
+    requestAnimationFrame(() => {
+      const row = listContainerRef?.querySelector(`[data-thread-id="${CSS.escape(selectedThreadId!)}"]`) as HTMLElement | null
+      if (!row) return
+      const rect = row.getBoundingClientRect()
+      row.dispatchEvent(new MouseEvent('contextmenu', {
+        bubbles: true,
+        clientX: rect.right,
+        clientY: rect.top + rect.height / 2,
+      }))
+    })
   }
 
   // Permanent delete confirmation state
@@ -1227,11 +1308,24 @@
   function scrollToIndex(index: number) {
     if (!listContainerRef) return
 
-    const rows = listContainerRef.querySelectorAll('[data-conversation-row]')
-    const row = rows[index] as HTMLElement | undefined
-    if (row) {
-      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const conversation = activeList[index] as any
+    if (!conversation) return
+
+    if (!isSearchMode && getGroupMessagesByDate()) {
+      const groupKey = getDateGroupKey(getConversationDate(conversation))
+      const nextExpanded = new Set(expandedDateGroups)
+      const nextCollapsed = new Set(collapsedDateGroups)
+      nextCollapsed.delete(groupKey)
+      nextExpanded.add(groupKey)
+      expandedDateGroups = nextExpanded
+      collapsedDateGroups = nextCollapsed
     }
+
+    requestAnimationFrame(() => {
+      const row = listContainerRef?.querySelector(`[data-thread-id="${CSS.escape(conversation.threadId)}"]`) as HTMLElement | null
+      if (!row) return
+      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
   }
 </script>
 
@@ -1643,32 +1737,76 @@
         </button>
       </div>
     {:else}
-      {#each conversations as conv, index (conv.threadId)}
-        {@const convAccountId = (conv as any).accountId || accountId}
-        {@const convFolderId = (conv as any).folderId || folderId}
-        {@const convAccountColor = (conv as any).accountColor || ''}
-        {@const convAccountName = (conv as any).accountName || ''}
-        <ConversationRow
-          conversation={conv}
-          density={getMessageListDensity()}
-          selected={selectedThreadId === conv.threadId}
-          checked={checkedThreadIds.has(conv.threadId)}
-          accountId={isUnifiedView ? convAccountId : accountId!}
-          folderId={isUnifiedView ? convFolderId : folderId!}
-          {folderType}
-          {selectedMessageIds}
-          selectedIsStarred={!selectedHasUnstarred}
-          selectedIsRead={!selectedHasUnread}
-          showAccountIndicator={isUnifiedView}
-          accountColor={convAccountColor}
-          accountName={convAccountName}
-          onSelect={(e) => selectConversation(conv.threadId, index, e)}
-          onCheck={(checked, e) => handleCheck(conv.threadId, checked, index, e)}
-          onClearSelection={clearSelection}
-          onActionComplete={handleActionComplete}
-          {onReply}
-        />
-      {/each}
+      {#if getGroupMessagesByDate()}
+        {#each groupedConversations as group (group.key)}
+          {@const groupExpanded = isDateGroupExpanded(group)}
+          <button
+            class="w-full h-7 px-3 flex items-center gap-1.5 border-b border-border bg-muted/30 hover:bg-muted/50 text-xs font-medium text-muted-foreground transition-colors"
+            onclick={() => toggleDateGroup(group)}
+            aria-expanded={groupExpanded}
+          >
+            <Icon icon={groupExpanded ? 'mdi:chevron-down' : 'mdi:chevron-right'} class="w-3.5 h-3.5" />
+            <span class="truncate">{group.label}</span>
+          </button>
+          {#if groupExpanded}
+            {#each group.items as item (item.conversation.threadId)}
+              {@const conv = item.conversation}
+              {@const index = item.index}
+              {@const convAccountId = (conv as any).accountId || accountId}
+              {@const convFolderId = (conv as any).folderId || folderId}
+              {@const convAccountColor = (conv as any).accountColor || ''}
+              {@const convAccountName = (conv as any).accountName || ''}
+              <ConversationRow
+                conversation={conv}
+                density={getMessageListDensity()}
+                selected={selectedThreadId === conv.threadId}
+                checked={checkedThreadIds.has(conv.threadId)}
+                accountId={isUnifiedView ? convAccountId : accountId!}
+                folderId={isUnifiedView ? convFolderId : folderId!}
+                {folderType}
+                {selectedMessageIds}
+                selectedIsStarred={!selectedHasUnstarred}
+                selectedIsRead={!selectedHasUnread}
+                showAccountIndicator={isUnifiedView}
+                accountColor={convAccountColor}
+                accountName={convAccountName}
+                onSelect={(e) => selectConversation(conv.threadId, index, e)}
+                onCheck={(checked, e) => handleCheck(conv.threadId, checked, index, e)}
+                onClearSelection={clearSelection}
+                onActionComplete={handleActionComplete}
+                {onReply}
+              />
+            {/each}
+          {/if}
+        {/each}
+      {:else}
+        {#each conversations as conv, index (conv.threadId)}
+          {@const convAccountId = (conv as any).accountId || accountId}
+          {@const convFolderId = (conv as any).folderId || folderId}
+          {@const convAccountColor = (conv as any).accountColor || ''}
+          {@const convAccountName = (conv as any).accountName || ''}
+          <ConversationRow
+            conversation={conv}
+            density={getMessageListDensity()}
+            selected={selectedThreadId === conv.threadId}
+            checked={checkedThreadIds.has(conv.threadId)}
+            accountId={isUnifiedView ? convAccountId : accountId!}
+            folderId={isUnifiedView ? convFolderId : folderId!}
+            {folderType}
+            {selectedMessageIds}
+            selectedIsStarred={!selectedHasUnstarred}
+            selectedIsRead={!selectedHasUnread}
+            showAccountIndicator={isUnifiedView}
+            accountColor={convAccountColor}
+            accountName={convAccountName}
+            onSelect={(e) => selectConversation(conv.threadId, index, e)}
+            onCheck={(checked, e) => handleCheck(conv.threadId, checked, index, e)}
+            onClearSelection={clearSelection}
+            onActionComplete={handleActionComplete}
+            {onReply}
+          />
+        {/each}
+      {/if}
 
       <!-- Load more button for pagination -->
       {#if conversations.length < totalCount}
