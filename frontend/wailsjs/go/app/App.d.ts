@@ -163,6 +163,8 @@ export function GetFolderTree(arg1:string):Promise<Array<folder.FolderTree>>;
 
 export function GetFolders(arg1:string):Promise<Array<folder.Folder>>;
 
+export function GetGroupMessagesByDate():Promise<boolean>;
+
 export function GetIMAPConnectionForUndo(arg1:context.Context,arg2:string):Promise<imap.Client>;
 
 export function GetIPCAddress():Promise<string>;
@@ -422,6 +424,8 @@ export function SetDefaultIdentity(arg1:string,arg2:string):Promise<void>;
 export function SetDefaultPGPKey(arg1:string,arg2:string):Promise<void>;
 
 export function SetDefaultSMIMECertificate(arg1:string,arg2:string):Promise<void>;
+
+export function SetGroupMessagesByDate(arg1:boolean):Promise<void>;
 
 export function SetLanguage(arg1:string):Promise<void>;
 

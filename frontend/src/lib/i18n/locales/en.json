@@ -427,6 +427,8 @@
     "selectTheme": "Select theme",
     "messageListDensity": "Message list density",
     "messageListDensityHelp": "Adjust the spacing and text size in the message list",
+    "groupMessagesByDate": "Group messages by date",
+    "groupMessagesByDateHelp": "Group the message list under collapsible date headers.",
     "showMessageListCircles": "Show colored circles in message list",
     "showMessageListCirclesHelp": "Show colored circles with sender initials in the message list",
     "showViewerCircles": "Show colored circles in conversation viewer",

@@ -427,6 +427,8 @@
     "selectTheme": "Velg tema",
     "messageListDensity": "Tetthet av meldingsliste",
     "messageListDensityHelp": "Juster tettheten og størrelsen av meldingslisten",
+    "groupMessagesByDate": "Grupper meldinger etter dato",
+    "groupMessagesByDateHelp": "Grupper meldingslisten under sammenleggbare datooverskrifter.",
     "showMessageListCircles": "Vis fargerike sirkler i meldingslisten",
     "showMessageListCirclesHelp": "Vis fargerike sirkler med avsenderen sine initialer i meldingslisten",
     "showViewerCircles": "Vis fargerike sirkler i samtalevisningen",

@@ -79,6 +79,16 @@ func (a *App) SetShowViewerCircles(enabled bool) error {
 	return a.settingsStore.SetShowViewerCircles(enabled)
 }
 
+// GetGroupMessagesByDate returns whether messages are grouped by date in the message list
+func (a *App) GetGroupMessagesByDate() (bool, error) {
+	return a.settingsStore.GetGroupMessagesByDate()
+}
+
+// SetGroupMessagesByDate enables or disables date grouping in the message list
+func (a *App) SetGroupMessagesByDate(enabled bool) error {
+	return a.settingsStore.SetGroupMessagesByDate(enabled)
+}
+
 // GetMessageListSortOrder returns the message list sort order setting
 func (a *App) GetMessageListSortOrder() (string, error) {
 	return a.settingsStore.GetMessageListSortOrder()

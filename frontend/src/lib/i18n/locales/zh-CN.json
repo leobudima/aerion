@@ -426,6 +426,8 @@
     "selectTheme": "选择主题",
     "messageListDensity": "邮件列表密度",
     "messageListDensityHelp": "调整邮件列表中的间距和字号",
+    "groupMessagesByDate": "按日期分组邮件",
+    "groupMessagesByDateHelp": "在可折叠的日期标题下对邮件列表分组。",
     "showMessageListCircles": "在邮件列表显示彩色圆圈",
     "showMessageListCirclesHelp": "在邮件列表中显示带有寄件人姓名缩写的彩色圆圈",
     "showViewerCircles": "在对话视图显示彩色圆圈",

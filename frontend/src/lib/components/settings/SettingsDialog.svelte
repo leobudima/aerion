@@ -5,9 +5,9 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import { Button } from '$lib/components/ui/button'
   // @ts-ignore - wailsjs path
-  import { GetReadReceiptResponsePolicy, SetReadReceiptResponsePolicy, GetMarkAsReadDelay, SetMarkAsReadDelay, GetMessageListDensity, SetMessageListDensity, GetThemeMode, SetThemeMode, GetShowTitleBar, SetShowTitleBar, GetRunBackground, SetRunBackground, GetStartHidden, SetStartHidden, GetAutostart, SetAutostart, GetLanguage, SetLanguage, GetComposerMode, SetComposerMode, GetMailtoMode, SetMailtoMode, GetComposerFormat, SetComposerFormat, GetNativeTitleBar, SetNativeTitleBar, GetAlwaysLoadImages, SetAlwaysLoadImages, GetDarkMailContent, SetDarkMailContent, GetAccentBarUnread, SetAccentBarUnread, GetShowMessageListCircles, SetShowMessageListCircles, GetShowViewerCircles, SetShowViewerCircles, QuitApp } from '../../../../wailsjs/go/app/App.js'
+  import { GetReadReceiptResponsePolicy, SetReadReceiptResponsePolicy, GetMarkAsReadDelay, SetMarkAsReadDelay, GetMessageListDensity, SetMessageListDensity, GetThemeMode, SetThemeMode, GetShowTitleBar, SetShowTitleBar, GetRunBackground, SetRunBackground, GetStartHidden, SetStartHidden, GetAutostart, SetAutostart, GetLanguage, SetLanguage, GetComposerMode, SetComposerMode, GetMailtoMode, SetMailtoMode, GetComposerFormat, SetComposerFormat, GetNativeTitleBar, SetNativeTitleBar, GetAlwaysLoadImages, SetAlwaysLoadImages, GetDarkMailContent, SetDarkMailContent, GetAccentBarUnread, SetAccentBarUnread, GetShowMessageListCircles, SetShowMessageListCircles, GetShowViewerCircles, SetShowViewerCircles, GetGroupMessagesByDate, SetGroupMessagesByDate, QuitApp } from '../../../../wailsjs/go/app/App.js'
   import { addToast } from '$lib/stores/toast'
-  import { setMessageListDensity as updateDensityStore, setThemeMode as updateThemeStore, setShowTitleBar as updateShowTitleBarStore, setRunBackground as updateRunBackgroundStore, setStartHidden as updateStartHiddenStore, setAutostart as updateAutostartStore, setLanguage as updateLanguageStore, setComposerMode as updateComposerModeStore, setMailtoMode as updateMailtoModeStore, setComposerFormat as updateComposerFormatStore, setNativeTitleBar as updateNativeTitleBarStore, setAlwaysLoadImages as updateAlwaysLoadImagesStore, setDarkMailContent as updateDarkMailContentStore, setAccentBarUnread as updateAccentBarUnreadStore, setShowMessageListCircles as updateShowMessageListCirclesStore, setShowViewerCircles as updateShowViewerCirclesStore, type MessageListDensity, type ThemeMode, type ComposerMode, type ComposerFormat } from '$lib/stores/settings.svelte'
+  import { setMessageListDensity as updateDensityStore, setThemeMode as updateThemeStore, setShowTitleBar as updateShowTitleBarStore, setRunBackground as updateRunBackgroundStore, setStartHidden as updateStartHiddenStore, setAutostart as updateAutostartStore, setLanguage as updateLanguageStore, setComposerMode as updateComposerModeStore, setMailtoMode as updateMailtoModeStore, setComposerFormat as updateComposerFormatStore, setNativeTitleBar as updateNativeTitleBarStore, setAlwaysLoadImages as updateAlwaysLoadImagesStore, setDarkMailContent as updateDarkMailContentStore, setAccentBarUnread as updateAccentBarUnreadStore, setShowMessageListCircles as updateShowMessageListCirclesStore, setShowViewerCircles as updateShowViewerCirclesStore, setGroupMessagesByDate as updateGroupMessagesByDateStore, type MessageListDensity, type ThemeMode, type ComposerMode, type ComposerFormat } from '$lib/stores/settings.svelte'
   import { applyThemeFromMode } from '$lib/stores/theme.svelte'
   import { _ } from '$lib/i18n'
   import ConfirmDialog from '$lib/components/ui/confirm-dialog/ConfirmDialog.svelte'
@@ -49,6 +49,7 @@
   let accentBarUnread = $state<boolean>(false)
   let showMessageListCircles = $state<boolean>(true)
   let showViewerCircles = $state<boolean>(true)
+  let groupMessagesByDate = $state<boolean>(true)
   let originalNativeTitleBar = false
   // Snapshot of the saved theme at dialog open time. Used to revert live preview
   // if the dialog closes without Save (Cancel / ESC / click-outside).
@@ -83,7 +84,7 @@
     loading = true
     hasSaved = false
     try {
-      const [policy, delayMs, density, theme, titleBar, runBg, startHid, autoSt, lang, comp, mail, compFmt, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles] = await Promise.all([
+      const [policy, delayMs, density, theme, titleBar, runBg, startHid, autoSt, lang, comp, mail, compFmt, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
         GetReadReceiptResponsePolicy(),
         GetMarkAsReadDelay(),
         GetMessageListDensity(),
@@ -102,6 +103,7 @@
         GetAccentBarUnread(),
         GetShowMessageListCircles(),
         GetShowViewerCircles(),
+        GetGroupMessagesByDate(),
       ])
       readReceiptResponsePolicy = policy
       // Convert ms to seconds for display
@@ -123,6 +125,7 @@
       accentBarUnread = accentBar ?? false
       showMessageListCircles = listCircles ?? true
       showViewerCircles = viewerCircles ?? true
+      groupMessagesByDate = groupByDate ?? true
       originalNativeTitleBar = nativeTitleBar
     } catch (err) {
       console.error('Failed to load settings:', err)
@@ -158,6 +161,7 @@
       await SetAccentBarUnread(accentBarUnread)
       await SetShowMessageListCircles(showMessageListCircles)
       await SetShowViewerCircles(showViewerCircles)
+      await SetGroupMessagesByDate(groupMessagesByDate)
       // Update the reactive stores so UI updates immediately
       updateDensityStore(messageListDensity as MessageListDensity)
       updateThemeStore(themeMode as ThemeMode)
@@ -177,6 +181,7 @@
       updateAccentBarUnreadStore(accentBarUnread)
       updateShowMessageListCirclesStore(showMessageListCircles)
       updateShowViewerCirclesStore(showViewerCircles)
+      updateGroupMessagesByDateStore(groupMessagesByDate)
       addToast({
         type: 'success',
         message: $_('toast.settingsSaved'),
@@ -288,6 +293,7 @@
               bind:accentBarUnread
               bind:showMessageListCircles
               bind:showViewerCircles
+              bind:groupMessagesByDate
               bind:darkMailContent
             />
           </Tabs.Content>

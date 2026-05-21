@@ -427,6 +427,8 @@
     "selectTheme": "Sélectionner le thème",
     "messageListDensity": "Densité de la liste",
     "messageListDensityHelp": "Ajuster l'espacement et la taille du texte dans la liste des messages",
+    "groupMessagesByDate": "Regrouper les messages par date",
+    "groupMessagesByDateHelp": "Regrouper la liste des messages sous des en-têtes de date repliables.",
     "showMessageListCircles": "Pastilles colorées dans la liste",
     "showMessageListCirclesHelp": "Pastille colorée avec les initiales de l'expéditeur",
     "showViewerCircles": "Pastilles colorées dans la conversation",

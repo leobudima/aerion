@@ -262,6 +262,7 @@
 >
   <div
     data-conversation-row
+    data-thread-id={conversation.threadId}
     draggable="true"
     class="group w-full flex items-start {densityClasses.row[density]} text-left border-b border-border transition-colors duration-300 cursor-pointer outline-none {selected
       ? 'bg-primary/20'
