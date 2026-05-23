@@ -5,6 +5,7 @@
   import { onMount, untrack } from 'svelte'
   import TitleBar from './lib/components/common/TitleBar.svelte'
   import Sidebar from './lib/components/sidebar/Sidebar.svelte'
+  import CalendarPanel from './lib/components/calendar/CalendarPanel.svelte'
   import MessageList from './lib/components/list/MessageList.svelte'
   import ConversationViewer from './lib/components/viewer/ConversationViewer.svelte'
   import Composer from './lib/components/composer/Composer.svelte'
@@ -12,6 +13,7 @@
   import TermsDialog from './lib/components/TermsDialog.svelte'
   import CertificateDialog from './lib/components/settings/CertificateDialog.svelte'
   import * as AlertDialog from '$lib/components/ui/alert-dialog'
+  import Icon from '@iconify/svelte'
   import { accountStore } from '$lib/stores/accounts.svelte'
   import { addToast } from '$lib/stores/toast'
   import { loadSettings, getThemeMode, getShowTitleBar, getNativeTitleBar, getComposerMode, getMailtoMode } from '$lib/stores/settings.svelte'
@@ -61,6 +63,9 @@
   let selectedThreadId = $state<string | null>(null)
   let selectedConversationFolderId = $state<string | null>(null)
   let selectedConversationAccountId = $state<string | null>(null)
+
+  // Calendar side panel state
+  let showCalendarPanel = $state(false)
 
   // Composer state
   let showComposer = $state(false)
@@ -640,10 +645,12 @@
   // Pane sizing state
   let sidebarWidth = $state(240)
   let listWidth = $state(420)
+  let calendarWidth = $state(340)
 
   // Resizing state
   let isResizingSidebar = $state(false)
   let isResizingList = $state(false)
+  let isResizingCalendar = $state(false)
 
   function startResizeSidebar(e: MouseEvent) {
     if (isResponsive()) return
@@ -657,11 +664,19 @@
     e.preventDefault()
   }
 
+  function startResizeCalendar(e: MouseEvent) {
+    if (isResponsive()) return
+    isResizingCalendar = true
+    e.preventDefault()
+  }
+
   function handleMouseMove(e: MouseEvent) {
     if (isResizingSidebar) {
       sidebarWidth = Math.max(paneConstraints.sidebar.min, Math.min(paneConstraints.sidebar.max, e.clientX))
     } else if (isResizingList) {
       listWidth = Math.max(paneConstraints.list.min, Math.min(paneConstraints.list.max, e.clientX - sidebarWidth))
+    } else if (isResizingCalendar) {
+      calendarWidth = Math.max(280, Math.min(520, window.innerWidth - e.clientX))
     }
   }
 
@@ -672,6 +687,7 @@
     }
     isResizingSidebar = false
     isResizingList = false
+    isResizingCalendar = false
   }
 
   // After a synthetic contextmenu event, bits-ui mounts the portal asynchronously.
@@ -1345,11 +1361,45 @@
         onToggleMessageFocus={toggleMessageFocus}
       />
     </main>
+
+    {#if !showCalendarPanel}
+      <button
+        type="button"
+        class="absolute right-2 top-2 z-20 p-2 rounded-md border border-border bg-background/95 shadow-sm hover:bg-muted transition-colors"
+        title="Open calendar"
+        onclick={() => showCalendarPanel = true}
+      >
+        <Icon icon="mdi:calendar-month-outline" class="w-5 h-5 text-muted-foreground" />
+      </button>
+    {/if}
+
+    {#if showCalendarPanel}
+      {#if isResponsive()}
+        <div class="absolute inset-0 z-40 bg-black/40" role="presentation" onclick={() => showCalendarPanel = false}></div>
+      {:else}
+        <button
+          type="button"
+          class="w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors border-0 p-0 {isResizingCalendar ? 'bg-primary/40' : ''}"
+          onmousedown={startResizeCalendar}
+          aria-label="Resize calendar"
+        ></button>
+      {/if}
+      <section
+        class="{isResponsive() ? 'absolute inset-y-0 right-0 z-50 w-80 max-w-full shadow-xl' : 'w-80 flex-shrink-0'}"
+        style="{!isResponsive() ? `width: ${calendarWidth}px` : ''}"
+        aria-label="Calendar"
+      >
+        <CalendarPanel
+          accountId={selectedAccountId}
+          onClose={() => showCalendarPanel = false}
+        />
+      </section>
+    {/if}
   </div>
 </div>
 
 <!-- Resize cursor overlay when dragging -->
-{#if isResizingSidebar || isResizingList}
+{#if isResizingSidebar || isResizingList || isResizingCalendar}
   <div class="fixed inset-0 cursor-col-resize z-50"></div>
 {/if}
 

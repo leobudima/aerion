@@ -21,10 +21,11 @@ func GoogleProvider() ProviderConfig {
 		AuthURL:     "https://accounts.google.com/o/oauth2/v2/auth",
 		TokenURL:    "https://oauth2.googleapis.com/token",
 		Scopes: []string{
-			"https://mail.google.com/",                                // Full Gmail access (IMAP/SMTP)
-			"https://www.googleapis.com/auth/contacts.other.readonly", // Other contacts (for autocomplete)
-			"https://www.googleapis.com/auth/contacts.readonly",       // Full contacts read access (for sync)
-			"https://www.googleapis.com/auth/userinfo.email",          // Get user's email address
+			"https://mail.google.com/",                                 // Full Gmail access (IMAP/SMTP)
+			"https://www.googleapis.com/auth/calendar.events.readonly", // Read Google Calendar events
+			"https://www.googleapis.com/auth/contacts.other.readonly",  // Other contacts (for autocomplete)
+			"https://www.googleapis.com/auth/contacts.readonly",        // Full contacts read access (for sync)
+			"https://www.googleapis.com/auth/userinfo.email",           // Get user's email address
 			"openid", // OpenID Connect
 		},
 		ClientID:     GoogleClientID,
@@ -80,9 +81,9 @@ func MicrosoftContactsOnlyProvider() ProviderConfig {
 		TokenURL:    "https://login.microsoftonline.com/common/oauth2/v2.0/token",
 		Scopes: []string{
 			"https://graph.microsoft.com/Contacts.Read", // Contacts read access
-			"offline_access",                            // Refresh tokens
-			"openid",                                    // OpenID Connect
-			"email",                                     // Get user's email address
+			"offline_access", // Refresh tokens
+			"openid",         // OpenID Connect
+			"email",          // Get user's email address
 		},
 		ClientID:     MicrosoftClientID,
 		ClientSecret: "", // Public client, no secret needed
