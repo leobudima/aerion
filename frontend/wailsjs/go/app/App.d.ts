@@ -33,10 +33,6 @@ export function AddPGPKeyServer(arg1:string):Promise<void>;
 
 export function Archive(arg1:Array<string>):Promise<void>;
 
-export function BroadcastAccountUpdated(arg1:string):Promise<void>;
-
-export function BroadcastContactsUpdated(arg1:string):Promise<void>;
-
 export function BroadcastThemeChange(arg1:string):Promise<void>;
 
 export function CanUndo():Promise<boolean>;
