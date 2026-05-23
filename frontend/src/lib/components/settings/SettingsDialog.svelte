@@ -5,9 +5,9 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import { Button } from '$lib/components/ui/button'
   // @ts-ignore - wailsjs path
-  import { GetReadReceiptResponsePolicy, SetReadReceiptResponsePolicy, GetMarkAsReadDelay, SetMarkAsReadDelay, GetMessageListDensity, SetMessageListDensity, GetThemeMode, SetThemeMode, GetShowTitleBar, SetShowTitleBar, GetRunBackground, SetRunBackground, GetStartHidden, SetStartHidden, GetAutostart, SetAutostart, GetLanguage, SetLanguage, GetComposerMode, SetComposerMode, GetMailtoMode, SetMailtoMode, GetComposerFormat, SetComposerFormat, GetNativeTitleBar, SetNativeTitleBar, GetAlwaysLoadImages, SetAlwaysLoadImages, GetDarkMailContent, SetDarkMailContent, GetAccentBarUnread, SetAccentBarUnread, GetShowMessageListCircles, SetShowMessageListCircles, GetShowViewerCircles, SetShowViewerCircles, GetGroupMessagesByDate, SetGroupMessagesByDate, QuitApp } from '../../../../wailsjs/go/app/App.js'
+  import { GetReadReceiptResponsePolicy, SetReadReceiptResponsePolicy, GetMarkAsReadDelay, SetMarkAsReadDelay, GetMessageListDensity, SetMessageListDensity, GetThreadMessagesSortOrder, SetThreadMessagesSortOrder, GetThemeMode, SetThemeMode, GetShowTitleBar, SetShowTitleBar, GetRunBackground, SetRunBackground, GetStartHidden, SetStartHidden, GetAutostart, SetAutostart, GetLanguage, SetLanguage, GetComposerMode, SetComposerMode, GetMailtoMode, SetMailtoMode, GetComposerFormat, SetComposerFormat, GetNativeTitleBar, SetNativeTitleBar, GetAlwaysLoadImages, SetAlwaysLoadImages, GetDarkMailContent, SetDarkMailContent, GetAccentBarUnread, SetAccentBarUnread, GetShowMessageListCircles, SetShowMessageListCircles, GetShowViewerCircles, SetShowViewerCircles, GetGroupMessagesByDate, SetGroupMessagesByDate, QuitApp } from '../../../../wailsjs/go/app/App.js'
   import { addToast } from '$lib/stores/toast'
-  import { setMessageListDensity as updateDensityStore, setThemeMode as updateThemeStore, setShowTitleBar as updateShowTitleBarStore, setRunBackground as updateRunBackgroundStore, setStartHidden as updateStartHiddenStore, setAutostart as updateAutostartStore, setLanguage as updateLanguageStore, setComposerMode as updateComposerModeStore, setMailtoMode as updateMailtoModeStore, setComposerFormat as updateComposerFormatStore, setNativeTitleBar as updateNativeTitleBarStore, setAlwaysLoadImages as updateAlwaysLoadImagesStore, setDarkMailContent as updateDarkMailContentStore, setAccentBarUnread as updateAccentBarUnreadStore, setShowMessageListCircles as updateShowMessageListCirclesStore, setShowViewerCircles as updateShowViewerCirclesStore, setGroupMessagesByDate as updateGroupMessagesByDateStore, type MessageListDensity, type ThemeMode, type ComposerMode, type ComposerFormat } from '$lib/stores/settings.svelte'
+  import { setMessageListDensity as updateDensityStore, setThreadMessagesSortOrder as updateThreadMessagesSortOrderStore, setThemeMode as updateThemeStore, setShowTitleBar as updateShowTitleBarStore, setRunBackground as updateRunBackgroundStore, setStartHidden as updateStartHiddenStore, setAutostart as updateAutostartStore, setLanguage as updateLanguageStore, setComposerMode as updateComposerModeStore, setMailtoMode as updateMailtoModeStore, setComposerFormat as updateComposerFormatStore, setNativeTitleBar as updateNativeTitleBarStore, setAlwaysLoadImages as updateAlwaysLoadImagesStore, setDarkMailContent as updateDarkMailContentStore, setAccentBarUnread as updateAccentBarUnreadStore, setShowMessageListCircles as updateShowMessageListCirclesStore, setShowViewerCircles as updateShowViewerCirclesStore, setGroupMessagesByDate as updateGroupMessagesByDateStore, type MessageListDensity, type ThreadMessagesSortOrder, type ThemeMode, type ComposerMode, type ComposerFormat } from '$lib/stores/settings.svelte'
   import { applyThemeFromMode } from '$lib/stores/theme.svelte'
   import { _ } from '$lib/i18n'
   import ConfirmDialog from '$lib/components/ui/confirm-dialog/ConfirmDialog.svelte'
@@ -34,6 +34,7 @@
   let readReceiptResponsePolicy = $state<string>('ask')
   let markAsReadDelaySeconds = $state<number>(1) // Display in seconds, store in ms
   let messageListDensity = $state<string>('standard')
+  let threadMessagesSortOrder = $state<string>('newest')
   let themeMode = $state<string>('system')
   let showTitleBar = $state<boolean>(true)
   let runBackground = $state<boolean>(false)
@@ -84,10 +85,11 @@
     loading = true
     hasSaved = false
     try {
-      const [policy, delayMs, density, theme, titleBar, runBg, startHid, autoSt, lang, comp, mail, compFmt, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
+      const [policy, delayMs, density, threadSortOrder, theme, titleBar, runBg, startHid, autoSt, lang, comp, mail, compFmt, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
         GetReadReceiptResponsePolicy(),
         GetMarkAsReadDelay(),
         GetMessageListDensity(),
+        GetThreadMessagesSortOrder(),
         GetThemeMode(),
         GetShowTitleBar(),
         GetRunBackground(),
@@ -109,6 +111,7 @@
       // Convert ms to seconds for display
       markAsReadDelaySeconds = delayMs < 0 ? -1 : delayMs / 1000
       messageListDensity = density
+      threadMessagesSortOrder = threadSortOrder || 'newest'
       themeMode = theme
       originalThemeMode = theme
       showTitleBar = titleBar
@@ -144,6 +147,7 @@
       await SetReadReceiptResponsePolicy(readReceiptResponsePolicy)
       await SetMarkAsReadDelay(delayMs)
       await SetMessageListDensity(messageListDensity)
+      await SetThreadMessagesSortOrder(threadMessagesSortOrder)
       await SetThemeMode(themeMode)
       await SetShowTitleBar(showTitleBar)
       await SetRunBackground(runBackground)
@@ -164,6 +168,7 @@
       await SetGroupMessagesByDate(groupMessagesByDate)
       // Update the reactive stores so UI updates immediately
       updateDensityStore(messageListDensity as MessageListDensity)
+      updateThreadMessagesSortOrderStore(threadMessagesSortOrder as ThreadMessagesSortOrder)
       updateThemeStore(themeMode as ThemeMode)
       updateShowTitleBarStore(showTitleBar)
       updateRunBackgroundStore(runBackground)
@@ -275,6 +280,7 @@
             <GeneralTab
               bind:markAsReadDelaySeconds
               bind:messageListDensity
+              bind:threadMessagesSortOrder
               bind:themeMode
               bind:nativeTitleBar
               bind:showTitleBar
@@ -284,6 +290,7 @@
               bind:language
               onDelayChange={(v) => markAsReadDelaySeconds = v}
               onDensityChange={(v) => messageListDensity = v}
+              onThreadMessagesSortOrderChange={(v) => threadMessagesSortOrder = v}
               onThemeChange={(v) => themeMode = v}
               onTitleBarChange={(ntb, stb) => { nativeTitleBar = ntb; showTitleBar = stb }}
               onRunBackgroundChange={(v) => { runBackground = v; if (!v) startHidden = false }}

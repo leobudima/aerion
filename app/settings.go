@@ -99,6 +99,16 @@ func (a *App) SetMessageListSortOrder(sortOrder string) error {
 	return a.settingsStore.SetMessageListSortOrder(sortOrder)
 }
 
+// GetThreadMessagesSortOrder returns the message order inside conversation threads
+func (a *App) GetThreadMessagesSortOrder() (string, error) {
+	return a.settingsStore.GetThreadMessagesSortOrder()
+}
+
+// SetThreadMessagesSortOrder sets the message order inside conversation threads
+func (a *App) SetThreadMessagesSortOrder(sortOrder string) error {
+	return a.settingsStore.SetThreadMessagesSortOrder(sortOrder)
+}
+
 // GetThemeMode returns the current theme mode setting
 // Values: "system", "light", "light-blue", "light-orange", "dark", "dark-gray", "dark-balanced"
 func (a *App) GetThemeMode() (string, error) {

@@ -18,6 +18,7 @@ const (
 	KeyMarkAsReadDelay           = "mark_as_read_delay"
 	KeyMessageListDensity        = "message_list_density"
 	KeyMessageListSortOrder      = "message_list_sort_order"
+	KeyThreadMessagesSortOrder   = "thread_messages_sort_order"
 	KeyThemeMode                 = "theme_mode"
 	KeyShowTitleBar              = "show_title_bar"
 	KeyTermsAccepted             = "terms_accepted"
@@ -56,6 +57,10 @@ const (
 
 // DefaultMessageListSortOrder is the default sort order
 const DefaultMessageListSortOrder = SortOrderNewest
+
+// DefaultThreadMessagesSortOrder is the default sort order for messages inside
+// a conversation thread.
+const DefaultThreadMessagesSortOrder = SortOrderNewest
 
 // Theme mode values
 const (
@@ -338,6 +343,26 @@ func (s *Store) SetMessageListSortOrder(sortOrder string) error {
 		return fmt.Errorf("invalid sort order: %s (must be 'newest' or 'oldest')", sortOrder)
 	}
 	return s.Set(KeyMessageListSortOrder, sortOrder)
+}
+
+// GetThreadMessagesSortOrder returns the current thread message sort order.
+func (s *Store) GetThreadMessagesSortOrder() (string, error) {
+	value, err := s.Get(KeyThreadMessagesSortOrder)
+	if err != nil {
+		return DefaultThreadMessagesSortOrder, err
+	}
+	if value == "" {
+		return DefaultThreadMessagesSortOrder, nil
+	}
+	return value, nil
+}
+
+// SetThreadMessagesSortOrder sets the thread message sort order.
+func (s *Store) SetThreadMessagesSortOrder(sortOrder string) error {
+	if sortOrder != SortOrderNewest && sortOrder != SortOrderOldest {
+		return fmt.Errorf("invalid sort order: %s (must be 'newest' or 'oldest')", sortOrder)
+	}
+	return s.Set(KeyThreadMessagesSortOrder, sortOrder)
 }
 
 // GetThemeMode returns the current theme mode setting
