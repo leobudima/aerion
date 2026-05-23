@@ -25,9 +25,9 @@ import (
 	"github.com/hkdb/aerion/internal/message"
 	"github.com/hkdb/aerion/internal/notification"
 	"github.com/hkdb/aerion/internal/oauth2"
+	"github.com/hkdb/aerion/internal/pgp"
 	"github.com/hkdb/aerion/internal/platform"
 	"github.com/hkdb/aerion/internal/settings"
-	"github.com/hkdb/aerion/internal/pgp"
 	"github.com/hkdb/aerion/internal/smime"
 	"github.com/hkdb/aerion/internal/sync"
 	"github.com/hkdb/aerion/internal/undo"
@@ -257,7 +257,7 @@ type App struct {
 
 	// Draft IMAP sync goroutine tracking — cancel in-flight syncDraftToIMAP
 	draftSyncContexts map[string]context.CancelFunc // keyed by draft ID
-	draftSyncDone     map[string]chan struct{}       // closed when goroutine exits
+	draftSyncDone     map[string]chan struct{}      // closed when goroutine exits
 
 	// Sleep/wake detection for auto-sync on wake
 	sleepWakeMonitor platform.SleepWakeMonitor
@@ -270,6 +270,9 @@ type App struct {
 
 	// Desktop notifications with click handling
 	notifier notification.Notifier
+
+	// System tray icon shown while the main window is hidden in background mode
+	backgroundTray platform.BackgroundTray
 
 	// DebugMode function reference (injected from main)
 	debugMode func() bool
@@ -549,6 +552,9 @@ func (a *App) Startup(ctx context.Context) {
 	// Initialize desktop notifications with click handling
 	a.initNotifications(ctx)
 
+	// Initialize tray support for Linux/KDE background mode.
+	a.backgroundTray = platform.NewBackgroundTray()
+
 	// Initialize sleep/wake monitor for auto-sync on wake
 	a.initSleepWakeMonitor(ctx)
 
@@ -596,6 +602,11 @@ func (a *App) Startup(ctx context.Context) {
 	// Initialize autostart manager
 	a.autostartMgr = platform.NewAutostartManager()
 
+	if a.GetStartHiddenActive() {
+		a.windowHidden = true
+		a.showBackgroundTray()
+	}
+
 	log.Info().Msg("Aerion started successfully")
 }
 
@@ -612,6 +623,7 @@ func (a *App) BeforeClose(ctx context.Context) bool {
 		log.Info().Msg("Window close requested, hiding to background")
 		wailsRuntime.WindowHide(a.ctx)
 		a.windowHidden = true
+		a.showBackgroundTray()
 		return true
 	}
 
@@ -651,6 +663,7 @@ func (a *App) ShowWindow() {
 	wailsRuntime.WindowUnminimise(a.ctx)
 	wailsRuntime.WindowShow(a.ctx)
 	a.windowHidden = false
+	a.hideBackgroundTray()
 
 	// Emit event so frontend can also attempt to focus
 	wailsRuntime.EventsEmit(a.ctx, "window:show")
@@ -666,6 +679,7 @@ func (a *App) CloseWindow() {
 		log.Info().Msg("Window close requested, hiding to background")
 		wailsRuntime.WindowHide(a.ctx)
 		a.windowHidden = true
+		a.showBackgroundTray()
 		return
 	}
 
@@ -695,6 +709,7 @@ func (a *App) QuitApp() {
 
 	log := logging.WithComponent("app")
 	log.Info().Msg("Quit requested")
+	a.hideBackgroundTray()
 	wailsRuntime.EventsEmit(a.ctx, "app:shutting-down")
 	go func() {
 		defer recoverPanic("app", "shutdown")
@@ -714,6 +729,28 @@ func (a *App) GetStartHiddenActive() bool {
 	return runBg
 }
 
+func (a *App) showBackgroundTray() {
+	if a.backgroundTray == nil || a.ctx == nil {
+		return
+	}
+
+	if err := a.backgroundTray.Start(a.ctx, a.ShowWindow); err != nil {
+		log := logging.WithComponent("app")
+		log.Warn().Err(err).Msg("Failed to show background tray icon")
+	}
+}
+
+func (a *App) hideBackgroundTray() {
+	if a.backgroundTray == nil {
+		return
+	}
+
+	if err := a.backgroundTray.Stop(); err != nil {
+		log := logging.WithComponent("app")
+		log.Warn().Err(err).Msg("Failed to hide background tray icon")
+	}
+}
+
 // InitiateShutdown triggers the application quit (called from frontend)
 func (a *App) InitiateShutdown() {
 	if shuttingDown {
@@ -723,6 +760,7 @@ func (a *App) InitiateShutdown() {
 
 	log := logging.WithComponent("app")
 	log.Info().Msg("Initiating shutdown")
+	a.hideBackgroundTray()
 	wailsRuntime.Quit(a.ctx)
 }
 
@@ -782,6 +820,11 @@ func (a *App) Shutdown(ctx context.Context) {
 	if a.notifier != nil {
 		a.notifier.Stop()
 		log.Info().Msg("Notification listener stopped")
+	}
+
+	if a.backgroundTray != nil {
+		_ = a.backgroundTray.Stop()
+		log.Info().Msg("Background tray stopped")
 	}
 
 	// Stop CardDAV scheduler
