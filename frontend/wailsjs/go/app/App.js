@@ -462,6 +462,10 @@ export function GetThemeMode() {
   return window['go']['app']['App']['GetThemeMode']();
 }
 
+export function GetThreadMessagesSortOrder() {
+  return window['go']['app']['App']['GetThreadMessagesSortOrder']();
+}
+
 export function GetTrustedCertificates(arg1) {
   return window['go']['app']['App']['GetTrustedCertificates'](arg1);
 }
@@ -892,6 +896,10 @@ export function SetTermsAccepted(arg1) {
 
 export function SetThemeMode(arg1) {
   return window['go']['app']['App']['SetThemeMode'](arg1);
+}
+
+export function SetThreadMessagesSortOrder(arg1) {
+  return window['go']['app']['App']['SetThreadMessagesSortOrder'](arg1);
 }
 
 export function ShowWindow() {

@@ -17,7 +17,7 @@
   import MessageContextMenu from '$lib/components/common/MessageContextMenu.svelte'
   import { _ } from '$lib/i18n'
   import { isDialogGuardActive } from '$lib/stores/dialogGuard'
-  import { getShowViewerCircles, getDarkMailContent } from '$lib/stores/settings.svelte'
+  import { getShowViewerCircles, getDarkMailContent, getThreadMessagesSortOrder } from '$lib/stores/settings.svelte'
   import { getIsDarkActive } from '$lib/stores/theme.svelte'
 
   interface Props {
@@ -148,6 +148,27 @@
   let refreshTimer: ReturnType<typeof setTimeout> | null = null
   let pendingRefresh: { tid: string; fid: string } | null = null
   let dialogGuardInterval: ReturnType<typeof setInterval> | null = null
+
+  function messageTime(msg: messageModels.Message): number {
+    const value = new Date(msg.date).getTime()
+    return Number.isNaN(value) ? 0 : value
+  }
+
+  function sortMessagesByDateDesc(messages: messageModels.Message[]): messageModels.Message[] {
+    return [...messages].sort((a, b) => messageTime(b) - messageTime(a))
+  }
+
+  function sortMessagesForThread(messages: messageModels.Message[]): messageModels.Message[] {
+    if (getThreadMessagesSortOrder() === 'oldest') {
+      return [...messages].sort((a, b) => messageTime(a) - messageTime(b))
+    }
+    return sortMessagesByDateDesc(messages)
+  }
+
+  function getLatestMessageIdFrom(messages: messageModels.Message[] | undefined): string | null {
+    if (!messages || messages.length === 0) return null
+    return sortMessagesByDateDesc(messages)[0]?.id ?? null
+  }
 
   // Event listener cleanup functions
   let cleanupFunctions: (() => void)[] = []
@@ -427,8 +448,8 @@
 
       // Compare message count and latest message ID to detect actual changes
       if (updated.messages.length === conversation.messages.length) {
-        const currentLatestId = conversation.messages[conversation.messages.length - 1]?.id
-        const updatedLatestId = updated.messages[updated.messages.length - 1]?.id
+        const currentLatestId = getLatestMessageIdFrom(conversation.messages)
+        const updatedLatestId = getLatestMessageIdFrom(updated.messages)
         if (currentLatestId === updatedLatestId) return
       }
 
@@ -439,8 +460,9 @@
       // Expand any new unread messages
       if (conversation.messages) {
         const newExpanded = new Set(expandedMessages)
-        conversation.messages.forEach((m, i) => {
-          if (!m.isRead || i === conversation!.messages!.length - 1) {
+        const latestMessageId = getLatestMessageIdFrom(conversation.messages)
+        conversation.messages.forEach((m) => {
+          if (!m.isRead || m.id === latestMessageId) {
             newExpanded.add(m.id)
           }
         })
@@ -477,12 +499,13 @@
 
       conversation = result
 
-      // Auto-expand unread messages and the last message
+      // Auto-expand unread messages and the newest message
       if (conversation?.messages) {
         const newExpanded = new Set<string>()
-        conversation.messages.forEach((m, i) => {
-          // Expand if unread or if it's the last message
-          if (!m.isRead || i === conversation!.messages!.length - 1) {
+        const latestMessageId = getLatestMessageIdFrom(conversation.messages)
+        conversation.messages.forEach((m) => {
+          // Expand if unread or if it's the newest message
+          if (!m.isRead || m.id === latestMessageId) {
             newExpanded.add(m.id)
           }
         })
@@ -505,10 +528,10 @@
       error = $_('viewer.failedToLoad')
     } finally {
       loading = false
-      // Scroll to bottom to show the latest message
+      // Newest messages render first.
       await tick()
       if (contentContainerRef) {
-        contentContainerRef.scrollTop = contentContainerRef.scrollHeight
+        contentContainerRef.scrollTop = 0
       }
     }
   }
@@ -672,9 +695,10 @@
   }
 
   function collapseAll() {
-    // Keep only the last message expanded
+    // Keep only the newest message expanded
     if (conversation?.messages && conversation.messages.length > 0) {
-      expandedMessages = new Set([conversation.messages[conversation.messages.length - 1].id])
+      const latestMessageId = getLatestMessageIdFrom(conversation.messages)
+      expandedMessages = latestMessageId ? new Set([latestMessageId]) : new Set()
     }
   }
 
@@ -739,8 +763,7 @@
   }
 
   export function getLastMessageId(): string | null {
-    if (!conversation?.messages || conversation.messages.length === 0) return null
-    return conversation.messages[conversation.messages.length - 1].id
+    return getLatestMessageIdFrom(conversation?.messages)
   }
 
   // Re-fetch conversation to pick up flag changes (star, read) from external actions
@@ -1025,13 +1048,16 @@
   // Computed: is this the Spam folder?
   const isSpamFolder = $derived(folderType === 'spam')
 
+  // Threads render newest-first by default.
+  const sortedMessages = $derived(sortMessagesForThread(conversation?.messages ?? []))
+
   // Computed: messages visible in the viewer.
   // In message-focus mode, narrow to the single targeted message.
   // Otherwise show the whole thread.
   const visibleMessages = $derived(
     inFocusMode && focusModeKind === 'message' && focusedMessageIdInFocus
-      ? (conversation?.messages?.filter(m => m.id === focusedMessageIdInFocus) ?? [])
-      : (conversation?.messages ?? [])
+      ? sortedMessages.filter(m => m.id === focusedMessageIdInFocus)
+      : sortedMessages
   )
 
   // Reference to the scrollable content area

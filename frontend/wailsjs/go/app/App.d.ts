@@ -247,6 +247,8 @@ export function GetTermsAccepted():Promise<boolean>;
 
 export function GetThemeMode():Promise<string>;
 
+export function GetThreadMessagesSortOrder():Promise<string>;
+
 export function GetTrustedCertificates(arg1:Array<string>):Promise<Array<certificate.CertificateInfo>>;
 
 export function GetUIState():Promise<appstate.UIState>;
@@ -462,6 +464,8 @@ export function SetStartHidden(arg1:boolean):Promise<void>;
 export function SetTermsAccepted(arg1:boolean):Promise<void>;
 
 export function SetThemeMode(arg1:string):Promise<void>;
+
+export function SetThreadMessagesSortOrder(arg1:string):Promise<void>;
 
 export function ShowWindow():Promise<void>;
 

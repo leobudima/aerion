@@ -2,7 +2,7 @@
 // Provides reactive state for application settings
 
 // @ts-ignore - wailsjs path
-import { GetMessageListDensity, GetMessageListSortOrder, GetThemeMode, GetShowTitleBar, GetRunBackground, GetStartHidden, GetAutostart, GetLanguage, GetComposerMode, GetMailtoMode, GetComposerFormat, GetNativeTitleBar, GetAlwaysLoadImages, GetDarkMailContent, GetAccentBarUnread, GetShowMessageListCircles, GetShowViewerCircles, GetGroupMessagesByDate } from '../../../wailsjs/go/app/App'
+import { GetMessageListDensity, GetMessageListSortOrder, GetThreadMessagesSortOrder, GetThemeMode, GetShowTitleBar, GetRunBackground, GetStartHidden, GetAutostart, GetLanguage, GetComposerMode, GetMailtoMode, GetComposerFormat, GetNativeTitleBar, GetAlwaysLoadImages, GetDarkMailContent, GetAccentBarUnread, GetShowMessageListCircles, GetShowViewerCircles, GetGroupMessagesByDate } from '../../../wailsjs/go/app/App'
 import { setLocale as setI18nLocale } from '$lib/i18n'
 import { loadDateFnsLocale, getDateFnsLocale } from '$lib/i18n/dateFnsLocale'
 import type { Locale } from 'date-fns'
@@ -11,6 +11,7 @@ export type ComposerMode = 'inline' | 'detached'
 export type ComposerFormat = 'rich' | 'plain'
 export type MessageListDensity = 'micro' | 'compact' | 'standard' | 'large'
 export type MessageListSortOrder = 'newest' | 'oldest'
+export type ThreadMessagesSortOrder = 'newest' | 'oldest'
 export type ThemeMode =
   | 'system'
   | 'light' | 'light-blue' | 'light-orange' | 'light-balanced' | 'adwaita-light' | 'breeze-light'
@@ -25,6 +26,7 @@ export type ThemeMode =
 // Module-level reactive state
 let messageListDensity = $state<MessageListDensity>('standard')
 let messageListSortOrder = $state<MessageListSortOrder>('newest')
+let threadMessagesSortOrder = $state<ThreadMessagesSortOrder>('newest')
 let themeMode = $state<ThemeMode>('system')
 let showTitleBar = $state<boolean>(true)
 let runBackground = $state<boolean>(false)
@@ -49,6 +51,10 @@ export function getMessageListDensity(): MessageListDensity {
 
 export function getMessageListSortOrder(): MessageListSortOrder {
   return messageListSortOrder
+}
+
+export function getThreadMessagesSortOrder(): ThreadMessagesSortOrder {
+  return threadMessagesSortOrder
 }
 
 export function getThemeMode(): ThemeMode {
@@ -128,6 +134,10 @@ export function setMessageListSortOrder(sortOrder: MessageListSortOrder) {
   messageListSortOrder = sortOrder
 }
 
+export function setThreadMessagesSortOrder(sortOrder: ThreadMessagesSortOrder) {
+  threadMessagesSortOrder = sortOrder
+}
+
 export function setThemeMode(mode: ThemeMode) {
   themeMode = mode
 }
@@ -199,9 +209,10 @@ export function setGroupMessagesByDate(v: boolean) {
 // Load settings from backend (call on app startup)
 export async function loadSettings(): Promise<ThemeMode> {
   try {
-    const [density, sortOrder, theme, titleBar, runBg, startHid, autoSt, lang, compMode, mailMode, compFormat, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
+    const [density, sortOrder, threadSortOrder, theme, titleBar, runBg, startHid, autoSt, lang, compMode, mailMode, compFormat, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
       GetMessageListDensity(),
       GetMessageListSortOrder(),
+      GetThreadMessagesSortOrder(),
       GetThemeMode(),
       GetShowTitleBar(),
       GetRunBackground(),
@@ -221,6 +232,7 @@ export async function loadSettings(): Promise<ThemeMode> {
     ])
     messageListDensity = (density as MessageListDensity) || 'standard'
     messageListSortOrder = (sortOrder as MessageListSortOrder) || 'newest'
+    threadMessagesSortOrder = (threadSortOrder as ThreadMessagesSortOrder) || 'newest'
     themeMode = (theme as ThemeMode) || 'system'
     showTitleBar = titleBar ?? true // Default to true
     runBackground = runBg ?? false

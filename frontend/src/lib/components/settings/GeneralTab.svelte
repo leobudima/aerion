@@ -11,6 +11,7 @@
   interface Props {
     markAsReadDelaySeconds: number
     messageListDensity: string
+    threadMessagesSortOrder: string
     themeMode: string
     nativeTitleBar: boolean
     showTitleBar: boolean
@@ -20,6 +21,7 @@
     language: string
     onDelayChange: (value: number) => void
     onDensityChange: (value: string) => void
+    onThreadMessagesSortOrderChange: (value: string) => void
     onThemeChange: (value: string) => void
     onTitleBarChange: (nativeTitleBar: boolean, showTitleBar: boolean) => void
     onRunBackgroundChange: (value: boolean) => void
@@ -36,6 +38,7 @@
   let {
     markAsReadDelaySeconds = $bindable(),
     messageListDensity = $bindable(),
+    threadMessagesSortOrder = $bindable(),
     themeMode = $bindable(),
     nativeTitleBar = $bindable(),
     showTitleBar = $bindable(),
@@ -45,6 +48,7 @@
     language = $bindable(),
     onDelayChange,
     onDensityChange,
+    onThreadMessagesSortOrderChange,
     onThemeChange,
     onTitleBarChange,
     onRunBackgroundChange,
@@ -64,6 +68,11 @@
     { value: 'compact', label: $_('settingsGeneral.densityCompact') },
     { value: 'standard', label: $_('settingsGeneral.densityStandard') },
     { value: 'large', label: $_('settingsGeneral.densityLarge') },
+  ])
+
+  const threadOrderOptions = $derived([
+    { value: 'newest', label: $_('settingsGeneral.threadOrderNewest') },
+    { value: 'oldest', label: $_('settingsGeneral.threadOrderOldest') },
   ])
 
   // Title bar options
@@ -114,6 +123,10 @@
     return densityOptions.find(opt => opt.value === value)?.label || value
   }
 
+  function getThreadOrderLabel(value: string): string {
+    return threadOrderOptions.find(opt => opt.value === value)?.label || value
+  }
+
   function getThemeModeLabel(value: string): string {
     return themeModeOptions.find(opt => opt.value === value)?.label || value
   }
@@ -126,6 +139,11 @@
   function handleDensityChange(value: string) {
     messageListDensity = value
     onDensityChange?.(value)
+  }
+
+  function handleThreadOrderChange(value: string) {
+    threadMessagesSortOrder = value
+    onThreadMessagesSortOrderChange?.(value)
   }
 
   function handleThemeChange(value: string) {
@@ -354,6 +372,25 @@
       </Select.Root>
       <p class="text-xs text-muted-foreground">
         {$_('settingsGeneral.messageListDensityHelp')}
+      </p>
+    </div>
+
+    <div class="space-y-2">
+      <Label>{$_('settingsGeneral.threadMessageOrder')}</Label>
+      <Select.Root value={threadMessagesSortOrder} onValueChange={handleThreadOrderChange}>
+        <Select.Trigger>
+          <Select.Value placeholder={$_('settingsGeneral.selectThreadMessageOrder')}>
+            {getThreadOrderLabel(threadMessagesSortOrder)}
+          </Select.Value>
+        </Select.Trigger>
+        <Select.Content>
+          {#each threadOrderOptions as opt (opt.value)}
+            <Select.Item value={opt.value} label={opt.label} />
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <p class="text-xs text-muted-foreground">
+        {$_('settingsGeneral.threadMessageOrderHelp')}
       </p>
     </div>
   </div>
