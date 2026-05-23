@@ -1079,6 +1079,17 @@
 
     // Single-key shortcuts
     switch (e.key) {
+      case 'a':
+        e.preventDefault()
+        if (messageListRef?.hasCheckedMessages()) {
+          handleBulkArchive(messageListRef.getCheckedMessageIds())
+        } else {
+          const focusedIds = messageListRef?.getSelectedMessageIds() ?? []
+          if (focusedIds.length > 0) {
+            handleBulkArchive(focusedIds)
+          }
+        }
+        return
       case 's':
         if (messageListRef?.hasCheckedMessages()) {
           handleBulkToggleStar(messageListRef.getCheckedMessageIds(), messageListRef.getCheckedHasUnstarred())
