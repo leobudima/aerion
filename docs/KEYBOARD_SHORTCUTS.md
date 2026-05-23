@@ -95,6 +95,7 @@ These work when not in an input field. They apply to checked messages (bulk) or 
 
 | Shortcut | Action |
 |----------|--------|
+| `A` | Archive |
 | `S` | Toggle star |
 | `Backspace` / `Delete` | Move to trash |
 | `Shift+Backspace` / `Shift+Delete` | Permanently delete |
@@ -159,6 +160,7 @@ MESSAGE ACTIONS
   S                   Star/Unstar
   Ctrl + U            Mark read
   Ctrl + Shift + U    Mark unread
+  A                   Archive
   Ctrl + K            Archive
   Ctrl + J            Spam
   Delete              Trash
