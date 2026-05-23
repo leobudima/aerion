@@ -299,6 +299,110 @@ export namespace app {
 	        this.license = source["license"];
 	    }
 	}
+	export class CalendarAttendee {
+	    email: string;
+	    name?: string;
+	    responseStatus?: string;
+	    optional?: boolean;
+	    organizer?: boolean;
+	    self?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CalendarAttendee(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.email = source["email"];
+	        this.name = source["name"];
+	        this.responseStatus = source["responseStatus"];
+	        this.optional = source["optional"];
+	        this.organizer = source["organizer"];
+	        this.self = source["self"];
+	    }
+	}
+	export class CalendarPerson {
+	    email?: string;
+	    name?: string;
+	    self?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CalendarPerson(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.email = source["email"];
+	        this.name = source["name"];
+	        this.self = source["self"];
+	    }
+	}
+	export class CalendarEvent {
+	    id: string;
+	    summary: string;
+	    description?: string;
+	    location?: string;
+	    // Go type: time
+	    start: any;
+	    // Go type: time
+	    end: any;
+	    allDay: boolean;
+	    htmlLink: string;
+	    hangoutLink?: string;
+	    organizer: CalendarPerson;
+	    creator: CalendarPerson;
+	    attendees?: CalendarAttendee[];
+	    recurringEvent: boolean;
+	    recurrence?: string[];
+	    reminderText?: string;
+	    accountId: string;
+	    accountName: string;
+	    accountEmail: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CalendarEvent(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.summary = source["summary"];
+	        this.description = source["description"];
+	        this.location = source["location"];
+	        this.start = this.convertValues(source["start"], null);
+	        this.end = this.convertValues(source["end"], null);
+	        this.allDay = source["allDay"];
+	        this.htmlLink = source["htmlLink"];
+	        this.hangoutLink = source["hangoutLink"];
+	        this.organizer = this.convertValues(source["organizer"], CalendarPerson);
+	        this.creator = this.convertValues(source["creator"], CalendarPerson);
+	        this.attendees = this.convertValues(source["attendees"], CalendarAttendee);
+	        this.recurringEvent = source["recurringEvent"];
+	        this.recurrence = source["recurrence"];
+	        this.reminderText = source["reminderText"];
+	        this.accountId = source["accountId"];
+	        this.accountName = source["accountName"];
+	        this.accountEmail = source["accountEmail"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ComposeMode {
 	    accountId: string;
 	    mode: string;
@@ -1988,4 +2092,3 @@ export namespace sync {
 	}
 
 }
-

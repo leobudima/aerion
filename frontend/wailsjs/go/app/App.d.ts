@@ -301,6 +301,8 @@ export function ListSMIMECertificates(arg1:string):Promise<Array<smime.Certifica
 
 export function ListSenderCerts():Promise<Array<smime.SenderCert>>;
 
+export function ListUpcomingCalendarEvents(arg1:string,arg2:number):Promise<Array<app.CalendarEvent>>;
+
 export function LookupHKP(arg1:string):Promise<string>;
 
 export function LookupPGPKey(arg1:string):Promise<string>;
