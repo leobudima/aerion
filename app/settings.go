@@ -160,7 +160,11 @@ func (a *App) SetRunBackground(enabled bool) error {
 		return err
 	}
 	if !enabled {
+		a.hideBackgroundTray()
 		return a.settingsStore.SetStartHidden(false)
+	}
+	if a.windowHidden {
+		a.showBackgroundTray()
 	}
 	return nil
 }
@@ -176,6 +180,9 @@ func (a *App) SetStartHidden(enabled bool) error {
 	if enabled {
 		if err := a.settingsStore.SetRunBackground(true); err != nil {
 			return err
+		}
+		if a.windowHidden {
+			a.showBackgroundTray()
 		}
 	}
 	return a.settingsStore.SetStartHidden(enabled)
