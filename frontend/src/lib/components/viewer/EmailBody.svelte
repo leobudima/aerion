@@ -186,8 +186,10 @@
     // html's saturate(S) hue-rotate(H) composed with image's saturate(1/S)
     // hue-rotate(-H) approximately cancels for non-grayscale image content.
     const imageSaturate = 1 / saturate
+    const bodyBackground = applyDarken ? 'transparent' : 'white'
     const darkenStyles = applyDarken ? `
-    html { filter: invert(${invertAmount}) hue-rotate(180deg) saturate(${saturate}) hue-rotate(${hueRotate}deg); background: #fff; color-scheme: dark; }
+    html { filter: invert(${invertAmount}) hue-rotate(180deg) saturate(${saturate}) hue-rotate(${hueRotate}deg); background: transparent !important; color-scheme: dark; }
+    body { background-color: transparent !important; }
     img:not([data-blocked-src]), video, iframe, [data-no-invert] { filter: invert(${invertAmount}) hue-rotate(180deg) saturate(${imageSaturate}) hue-rotate(${-hueRotate}deg); }
 ` : `
     html { color-scheme: light; }
@@ -356,7 +358,7 @@
       margin: 0; padding: 0;
       font-family: system-ui, sans-serif;
       font-size: 14px; line-height: 1.5;
-      color: #1a1a0a; background-color: white;
+      color: #1a1a0a; background-color: ${bodyBackground};
       overflow-x: auto; word-wrap: break-word;
       scrollbar-width: none; /* Firefox */
       -ms-overflow-style: none; /* IE/Edge */
