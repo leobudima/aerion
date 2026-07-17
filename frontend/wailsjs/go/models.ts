@@ -403,6 +403,7 @@ export namespace app {
 		    return a;
 		}
 	}
+	
 	export class ComposeMode {
 	    accountId: string;
 	    mode: string;
@@ -711,6 +712,13 @@ export namespace appstate {
 	    selectedConversationFolderId: string;
 	    sidebarWidth: number;
 	    listWidth: number;
+	    calendarWidth: number;
+	    calendarOpen: boolean;
+	    windowX: number;
+	    windowY: number;
+	    windowWidth: number;
+	    windowHeight: number;
+	    windowMaximized: boolean;
 	    expandedAccounts: Record<string, boolean>;
 	    unifiedInboxExpanded: boolean;
 	    collapsedFolders: Record<string, boolean>;
@@ -730,6 +738,13 @@ export namespace appstate {
 	        this.selectedConversationFolderId = source["selectedConversationFolderId"];
 	        this.sidebarWidth = source["sidebarWidth"];
 	        this.listWidth = source["listWidth"];
+	        this.calendarWidth = source["calendarWidth"];
+	        this.calendarOpen = source["calendarOpen"];
+	        this.windowX = source["windowX"];
+	        this.windowY = source["windowY"];
+	        this.windowWidth = source["windowWidth"];
+	        this.windowHeight = source["windowHeight"];
+	        this.windowMaximized = source["windowMaximized"];
 	        this.expandedAccounts = source["expandedAccounts"];
 	        this.unifiedInboxExpanded = source["unifiedInboxExpanded"];
 	        this.collapsedFolders = source["collapsedFolders"];
@@ -2092,3 +2107,4 @@ export namespace sync {
 	}
 
 }
+

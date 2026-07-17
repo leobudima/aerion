@@ -16,6 +16,13 @@ export interface UIState {
   selectedConversationFolderId: string | null
   sidebarWidth: number
   listWidth: number
+  calendarWidth: number
+  calendarOpen: boolean
+  windowX: number
+  windowY: number
+  windowWidth: number
+  windowHeight: number
+  windowMaximized: boolean
   // Sidebar section expand/collapse states
   expandedAccounts: Record<string, boolean>  // accountId -> isExpanded (default: true)
   unifiedInboxExpanded: boolean              // Unified Inbox section (default: true)
@@ -27,6 +34,8 @@ const SIDEBAR_MIN = 180
 const SIDEBAR_MAX = 400
 const LIST_MIN = 280
 const LIST_MAX = 600
+const CALENDAR_MIN = 280
+const CALENDAR_MAX = 520
 
 // Default state
 const defaultState: UIState = {
@@ -39,6 +48,13 @@ const defaultState: UIState = {
   selectedConversationFolderId: null,
   sidebarWidth: 240,
   listWidth: 420,
+  calendarWidth: 340,
+  calendarOpen: false,
+  windowX: 0,
+  windowY: 0,
+  windowWidth: 0,
+  windowHeight: 0,
+  windowMaximized: false,
   expandedAccounts: {},
   unifiedInboxExpanded: true,
   collapsedFolders: {},
@@ -74,6 +90,13 @@ export async function loadUIState(): Promise<UIState> {
         // Validate and clamp pane widths
         sidebarWidth: clamp(state.sidebarWidth || 240, SIDEBAR_MIN, SIDEBAR_MAX),
         listWidth: clamp(state.listWidth || 420, LIST_MIN, LIST_MAX),
+        calendarWidth: clamp(state.calendarWidth || 340, CALENDAR_MIN, CALENDAR_MAX),
+        calendarOpen: state.calendarOpen || false,
+        windowX: state.windowX || 0,
+        windowY: state.windowY || 0,
+        windowWidth: state.windowWidth || 0,
+        windowHeight: state.windowHeight || 0,
+        windowMaximized: state.windowMaximized || false,
         // Sidebar expand/collapse states
         expandedAccounts: state.expandedAccounts || {},
         unifiedInboxExpanded: state.unifiedInboxExpanded !== false, // default true
@@ -96,7 +119,37 @@ export function getUIStateVersion(): number {
 // Debounced save
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
-export function saveUIState(updates: Partial<UIState>): void {
+async function persistCurrentState(): Promise<void> {
+  try {
+    // Convert to backend model format
+    const backendState: appstate.UIState = {
+      selectedAccountId: currentState.selectedAccountId || '',
+      selectedFolderId: currentState.selectedFolderId || '',
+      selectedFolderName: currentState.selectedFolderName,
+      selectedFolderType: currentState.selectedFolderType || '',
+      selectedThreadId: currentState.selectedThreadId || '',
+      selectedConversationAccountId: currentState.selectedConversationAccountId || '',
+      selectedConversationFolderId: currentState.selectedConversationFolderId || '',
+      sidebarWidth: currentState.sidebarWidth,
+      listWidth: currentState.listWidth,
+      calendarWidth: currentState.calendarWidth,
+      calendarOpen: currentState.calendarOpen,
+      windowX: currentState.windowX,
+      windowY: currentState.windowY,
+      windowWidth: currentState.windowWidth,
+      windowHeight: currentState.windowHeight,
+      windowMaximized: currentState.windowMaximized,
+      expandedAccounts: currentState.expandedAccounts,
+      unifiedInboxExpanded: currentState.unifiedInboxExpanded,
+      collapsedFolders: currentState.collapsedFolders,
+    }
+    await SaveUIState(backendState)
+  } catch (err) {
+    console.error('Failed to save UI state:', err)
+  }
+}
+
+export function saveUIState(updates: Partial<UIState>, immediate = false): void {
   // Merge updates into current state
   currentState = { ...currentState, ...updates }
 
@@ -107,31 +160,29 @@ export function saveUIState(updates: Partial<UIState>): void {
   if (updates.listWidth !== undefined) {
     currentState.listWidth = clamp(updates.listWidth, LIST_MIN, LIST_MAX)
   }
+  if (updates.calendarWidth !== undefined) {
+    currentState.calendarWidth = clamp(updates.calendarWidth, CALENDAR_MIN, CALENDAR_MAX)
+  }
+
+  if (immediate) {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = null
+    void persistCurrentState()
+    return
+  }
 
   // Debounce: save at most once per second
   if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(async () => {
-    try {
-      // Convert to backend model format
-      const backendState: appstate.UIState = {
-        selectedAccountId: currentState.selectedAccountId || '',
-        selectedFolderId: currentState.selectedFolderId || '',
-        selectedFolderName: currentState.selectedFolderName,
-        selectedFolderType: currentState.selectedFolderType || '',
-        selectedThreadId: currentState.selectedThreadId || '',
-        selectedConversationAccountId: currentState.selectedConversationAccountId || '',
-        selectedConversationFolderId: currentState.selectedConversationFolderId || '',
-        sidebarWidth: currentState.sidebarWidth,
-        listWidth: currentState.listWidth,
-        expandedAccounts: currentState.expandedAccounts,
-        unifiedInboxExpanded: currentState.unifiedInboxExpanded,
-        collapsedFolders: currentState.collapsedFolders,
-      }
-      await SaveUIState(backendState)
-    } catch (err) {
-      console.error('Failed to save UI state:', err)
-    }
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    void persistCurrentState()
   }, 1000)
+}
+
+export function flushUIState(): Promise<void> {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = null
+  return persistCurrentState()
 }
 
 // Helper to check if an account is expanded (defaults to true if not set)
@@ -175,4 +226,5 @@ export function getUIState(): UIState {
 export const paneConstraints = {
   sidebar: { min: SIDEBAR_MIN, max: SIDEBAR_MAX },
   list: { min: LIST_MIN, max: LIST_MAX },
+  calendar: { min: CALENDAR_MIN, max: CALENDAR_MAX },
 }

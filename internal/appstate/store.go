@@ -76,6 +76,7 @@ func (s *Store) GetUIState() (*UIState, error) {
 		return &UIState{
 			SidebarWidth:         240,
 			ListWidth:            420,
+			CalendarWidth:        340,
 			ExpandedAccounts:     make(map[string]bool),
 			UnifiedInboxExpanded: true,
 			CollapsedFolders:     make(map[string]bool),
@@ -88,10 +89,15 @@ func (s *Store) GetUIState() (*UIState, error) {
 		return &UIState{
 			SidebarWidth:         240,
 			ListWidth:            420,
+			CalendarWidth:        340,
 			ExpandedAccounts:     make(map[string]bool),
 			UnifiedInboxExpanded: true,
 			CollapsedFolders:     make(map[string]bool),
 		}, nil
+	}
+
+	if state.CalendarWidth == 0 {
+		state.CalendarWidth = 340
 	}
 
 	// Ensure maps are initialized (for older saved states)

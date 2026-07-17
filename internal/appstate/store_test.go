@@ -35,6 +35,9 @@ func TestGetUIStateDefault(t *testing.T) {
 	if state.ListWidth != 420 {
 		t.Errorf("ListWidth = %d, want 420", state.ListWidth)
 	}
+	if state.CalendarWidth != 340 {
+		t.Errorf("CalendarWidth = %d, want 340", state.CalendarWidth)
+	}
 	if !state.UnifiedInboxExpanded {
 		t.Error("UnifiedInboxExpanded = false, want true")
 	}
@@ -57,6 +60,13 @@ func TestSaveGetUIState(t *testing.T) {
 		SelectedFolderType:   "inbox",
 		SidebarWidth:         300,
 		ListWidth:            500,
+		CalendarWidth:        380,
+		CalendarOpen:         true,
+		WindowX:              100,
+		WindowY:              120,
+		WindowWidth:          1400,
+		WindowHeight:         900,
+		WindowMaximized:      true,
 		ExpandedAccounts:     map[string]bool{"acct-1": true, "acct-2": false},
 		UnifiedInboxExpanded: false,
 		CollapsedFolders:     map[string]bool{"folder-2": true},
@@ -75,6 +85,18 @@ func TestSaveGetUIState(t *testing.T) {
 	}
 	if got.ListWidth != 500 {
 		t.Errorf("ListWidth = %d, want 500", got.ListWidth)
+	}
+	if got.CalendarWidth != 380 {
+		t.Errorf("CalendarWidth = %d, want 380", got.CalendarWidth)
+	}
+	if !got.CalendarOpen {
+		t.Error("CalendarOpen = false, want true")
+	}
+	if got.WindowX != 100 || got.WindowY != 120 || got.WindowWidth != 1400 || got.WindowHeight != 900 {
+		t.Errorf("window bounds = (%d,%d %dx%d), want (100,120 1400x900)", got.WindowX, got.WindowY, got.WindowWidth, got.WindowHeight)
+	}
+	if !got.WindowMaximized {
+		t.Error("WindowMaximized = false, want true")
 	}
 	if got.SelectedAccountID != "acct-1" {
 		t.Errorf("SelectedAccountID = %q, want %q", got.SelectedAccountID, "acct-1")
@@ -148,6 +170,9 @@ func TestGetUIStateCorrupt(t *testing.T) {
 	}
 	if state.ListWidth != 420 {
 		t.Errorf("ListWidth = %d, want 420", state.ListWidth)
+	}
+	if state.CalendarWidth != 340 {
+		t.Errorf("CalendarWidth = %d, want 340", state.CalendarWidth)
 	}
 	if !state.UnifiedInboxExpanded {
 		t.Error("UnifiedInboxExpanded = false, want true")

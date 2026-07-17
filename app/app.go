@@ -621,6 +621,9 @@ func (a *App) BeforeClose(ctx context.Context) bool {
 	if runBg {
 		log := logging.WithComponent("app")
 		log.Info().Msg("Window close requested, hiding to background")
+		if err := a.SaveMainWindowState(); err != nil {
+			log.Debug().Err(err).Msg("Failed to save window state before hiding")
+		}
 		wailsRuntime.WindowHide(a.ctx)
 		a.windowHidden = true
 		a.showBackgroundTray()
@@ -630,6 +633,9 @@ func (a *App) BeforeClose(ctx context.Context) bool {
 	// Normal shutdown flow
 	log := logging.WithComponent("app")
 	log.Info().Msg("Window close requested, showing shutdown overlay")
+	if err := a.SaveMainWindowState(); err != nil {
+		log.Debug().Err(err).Msg("Failed to save window state before shutdown")
+	}
 
 	shuttingDown = true
 
@@ -677,6 +683,9 @@ func (a *App) CloseWindow() {
 	if runBg {
 		log := logging.WithComponent("app")
 		log.Info().Msg("Window close requested, hiding to background")
+		if err := a.SaveMainWindowState(); err != nil {
+			log.Debug().Err(err).Msg("Failed to save window state before hiding")
+		}
 		wailsRuntime.WindowHide(a.ctx)
 		a.windowHidden = true
 		a.showBackgroundTray()
@@ -691,6 +700,9 @@ func (a *App) CloseWindow() {
 
 	log := logging.WithComponent("app")
 	log.Info().Msg("Window close requested, shutting down")
+	if err := a.SaveMainWindowState(); err != nil {
+		log.Debug().Err(err).Msg("Failed to save window state before shutdown")
+	}
 	wailsRuntime.EventsEmit(a.ctx, "app:shutting-down")
 	go func() {
 		defer recoverPanic("app", "shutdown")
@@ -709,6 +721,9 @@ func (a *App) QuitApp() {
 
 	log := logging.WithComponent("app")
 	log.Info().Msg("Quit requested")
+	if err := a.SaveMainWindowState(); err != nil {
+		log.Debug().Err(err).Msg("Failed to save window state before quit")
+	}
 	a.hideBackgroundTray()
 	wailsRuntime.EventsEmit(a.ctx, "app:shutting-down")
 	go func() {

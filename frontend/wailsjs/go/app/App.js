@@ -722,6 +722,10 @@ export function ReorderAccounts(arg1) {
   return window['go']['app']['App']['ReorderAccounts'](arg1);
 }
 
+export function RestoreMainWindowState() {
+  return window['go']['app']['App']['RestoreMainWindowState']();
+}
+
 export function SaveAllAttachments(arg1) {
   return window['go']['app']['App']['SaveAllAttachments'](arg1);
 }
@@ -740,6 +744,10 @@ export function SaveDraft(arg1, arg2, arg3) {
 
 export function SaveEncryptedAttachmentAs(arg1, arg2) {
   return window['go']['app']['App']['SaveEncryptedAttachmentAs'](arg1, arg2);
+}
+
+export function SaveMainWindowState() {
+  return window['go']['app']['App']['SaveMainWindowState']();
 }
 
 export function SaveOAuthTokens(arg1, arg2, arg3, arg4, arg5) {

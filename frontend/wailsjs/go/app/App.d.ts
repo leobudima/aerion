@@ -377,6 +377,8 @@ export function RemoveTrustedCertificate(arg1:string):Promise<void>;
 
 export function ReorderAccounts(arg1:Array<string>):Promise<void>;
 
+export function RestoreMainWindowState():Promise<void>;
+
 export function SaveAllAttachments(arg1:string):Promise<string>;
 
 export function SaveAllEncryptedAttachments(arg1:string):Promise<string>;
@@ -386,6 +388,8 @@ export function SaveAttachmentAs(arg1:string):Promise<string>;
 export function SaveDraft(arg1:string,arg2:smtp.ComposeMessage,arg3:string):Promise<app.DraftResult>;
 
 export function SaveEncryptedAttachmentAs(arg1:string,arg2:string):Promise<string>;
+
+export function SaveMainWindowState():Promise<void>;
 
 export function SaveOAuthTokens(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number):Promise<void>;
 

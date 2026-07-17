@@ -33,11 +33,11 @@
   import { isDialogGuardActive } from '$lib/stores/dialogGuard'
   import { initLayout, getLayoutMode, getResponsiveView, showViewer, hideViewer, showSidebar, hideSidebar, isResponsive } from '$lib/stores/layout.svelte'
   // @ts-ignore - wailsjs path
-  import { PrepareReply, GetPendingMailto, GetDraft, MarkAsRead, MarkAsUnread, Star, Unstar, Archive, MarkAsSpam, MarkAsNotSpam, Undo, GetTermsAccepted, SetTermsAccepted, RefreshWindowConstraints, AcceptCertificate, GetStartHiddenActive, CloseWindow, QuitApp, OpenComposerWindow, GetSystemTheme, NotifyStartupComplete } from '../wailsjs/go/app/App.js'
+  import { PrepareReply, GetPendingMailto, GetDraft, MarkAsRead, MarkAsUnread, Star, Unstar, Archive, MarkAsSpam, MarkAsNotSpam, Undo, GetTermsAccepted, SetTermsAccepted, RefreshWindowConstraints, RestoreMainWindowState, AcceptCertificate, GetStartHiddenActive, CloseWindow, QuitApp, OpenComposerWindow, GetSystemTheme, NotifyStartupComplete } from '../wailsjs/go/app/App.js'
   // @ts-ignore - wailsjs path
   import { smtp, folder, certificate } from '../wailsjs/go/models'
   // @ts-ignore - wailsjs runtime
-  import { WindowShow, EventsOn } from '../wailsjs/runtime/runtime'
+  import { WindowGetPosition, WindowGetSize, WindowIsMaximised, WindowShow, EventsOn } from '../wailsjs/runtime/runtime'
   import { _ } from '$lib/i18n'
 
   // Component refs for keyboard navigation
@@ -67,6 +67,32 @@
 
   // Calendar side panel state
   let showCalendarPanel = $state(false)
+
+  function setCalendarPanelOpen(open: boolean) {
+    showCalendarPanel = open
+    saveUIState({ calendarOpen: open }, true)
+  }
+
+  async function saveMainWindowState(extra: { calendarOpen?: boolean; calendarWidth?: number } = {}) {
+    try {
+      const [size, position, maximized] = await Promise.all([
+        WindowGetSize(),
+        WindowGetPosition(),
+        WindowIsMaximised(),
+      ])
+
+      saveUIState({
+        windowX: position.x,
+        windowY: position.y,
+        windowWidth: size.w,
+        windowHeight: size.h,
+        windowMaximized: maximized,
+        ...extra,
+      }, true)
+    } catch (err) {
+      console.error('Failed to save window state:', err)
+    }
+  }
 
   // Composer state
   let showComposer = $state(false)
@@ -269,6 +295,7 @@
     // Listen for shutdown event from backend (triggered by OS close signal)
     EventsOn('app:shutting-down', () => {
       isShuttingDown = true
+      void saveMainWindowState({ calendarOpen: showCalendarPanel, calendarWidth })
     })
 
     // Listen for untrusted certificate events from background sync
@@ -331,6 +358,8 @@
     // Restore pane widths (already validated/clamped by loadUIState)
     sidebarWidth = uiState.sidebarWidth
     listWidth = uiState.listWidth
+    calendarWidth = uiState.calendarWidth
+    showCalendarPanel = uiState.calendarOpen
 
     // Restore folder selection if valid
     if (uiState.selectedAccountId && uiState.selectedFolderId) {
@@ -370,6 +399,11 @@
     // Skip if starting hidden in background mode
     const shouldStartHidden = await GetStartHiddenActive()
     if (!shouldStartHidden) {
+      try {
+        await RestoreMainWindowState()
+      } catch (err) {
+        console.error('Failed to restore window state:', err)
+      }
       WindowShow()
     }
 
@@ -380,6 +414,16 @@
 
     // Remove GTK max size constraints that Wails v2 sets at startup
     RefreshWindowConstraints()
+
+    let windowSaveTimer: ReturnType<typeof setTimeout> | null = null
+    const saveWindowStateSoon = () => {
+      if (windowSaveTimer) clearTimeout(windowSaveTimer)
+      windowSaveTimer = setTimeout(() => {
+        windowSaveTimer = null
+        void saveMainWindowState()
+      }, 500)
+    }
+    window.addEventListener('resize', saveWindowStateSoon)
 
     // Initialize responsive layout breakpoint listeners
     initLayout()
@@ -685,7 +729,7 @@
     } else if (isResizingList) {
       listWidth = Math.max(paneConstraints.list.min, Math.min(paneConstraints.list.max, e.clientX - sidebarWidth))
     } else if (isResizingCalendar) {
-      calendarWidth = Math.max(280, Math.min(520, window.innerWidth - e.clientX))
+      calendarWidth = Math.max(paneConstraints.calendar.min, Math.min(paneConstraints.calendar.max, window.innerWidth - e.clientX))
     }
   }
 
@@ -693,6 +737,9 @@
     // Save pane widths if we were resizing
     if (isResizingSidebar || isResizingList) {
       saveUIState({ sidebarWidth, listWidth })
+    }
+    if (isResizingCalendar) {
+      saveUIState({ calendarWidth }, true)
     }
     isResizingSidebar = false
     isResizingList = false
@@ -1391,7 +1438,7 @@
         type="button"
         class="absolute right-2 top-2 z-20 p-2 rounded-md border border-border bg-background/95 shadow-sm hover:bg-muted transition-colors"
         title="Open calendar"
-        onclick={() => showCalendarPanel = true}
+        onclick={() => setCalendarPanelOpen(true)}
       >
         <Icon icon="mdi:calendar-month-outline" class="w-5 h-5 text-muted-foreground" />
       </button>
@@ -1399,7 +1446,7 @@
 
     {#if showCalendarPanel}
       {#if isResponsive()}
-        <div class="absolute inset-0 z-40 bg-black/40" role="presentation" onclick={() => showCalendarPanel = false}></div>
+        <div class="absolute inset-0 z-40 bg-black/40" role="presentation" onclick={() => setCalendarPanelOpen(false)}></div>
       {:else}
         <button
           type="button"
@@ -1415,7 +1462,7 @@
       >
         <CalendarPanel
           accountId={selectedAccountId}
-          onClose={() => showCalendarPanel = false}
+          onClose={() => setCalendarPanelOpen(false)}
         />
       </section>
     {/if}

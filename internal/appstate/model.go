@@ -14,8 +14,17 @@ type UIState struct {
 	SelectedConversationFolderID  string `json:"selectedConversationFolderId"`  // Real folder ID
 
 	// Pane widths
-	SidebarWidth int `json:"sidebarWidth"`
-	ListWidth    int `json:"listWidth"`
+	SidebarWidth  int  `json:"sidebarWidth"`
+	ListWidth     int  `json:"listWidth"`
+	CalendarWidth int  `json:"calendarWidth"`
+	CalendarOpen  bool `json:"calendarOpen"`
+
+	// Main window bounds
+	WindowX         int  `json:"windowX"`
+	WindowY         int  `json:"windowY"`
+	WindowWidth     int  `json:"windowWidth"`
+	WindowHeight    int  `json:"windowHeight"`
+	WindowMaximized bool `json:"windowMaximized"`
 
 	// Sidebar section expand/collapse states
 	ExpandedAccounts     map[string]bool `json:"expandedAccounts"`     // accountID -> isExpanded (default: true)
