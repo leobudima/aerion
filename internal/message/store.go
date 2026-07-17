@@ -122,7 +122,15 @@ func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filt
 		SELECT 
 			COALESCE(m.thread_id, m.id) as conv_thread_id,
 			MIN(m.subject) as subject,
-			MAX(m.snippet) as snippet,
+			(
+				SELECT lm.snippet
+				FROM messages lm
+				INNER JOIN folders lf ON lm.folder_id = lf.id AND lf.folder_type = 'inbox'
+				WHERE lm.account_id = m.account_id
+					AND COALESCE(lm.thread_id, lm.id) = COALESCE(m.thread_id, m.id)
+				ORDER BY lm.date DESC, lm.uid DESC
+				LIMIT 1
+			) as snippet,
 			COUNT(*) as message_count,
 			SUM(CASE WHEN m.is_read = 0 THEN 1 ELSE 0 END) as unread_count,
 			MAX(CASE WHEN m.has_attachments = 1 THEN 1 ELSE 0 END) as has_attachments,
@@ -200,8 +208,6 @@ func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filt
 
 	return conversations, nil
 }
-
-
 
 // CountConversationsUnifiedInbox returns the total count of conversations across all inbox folders
 func (s *Store) CountConversationsUnifiedInbox(filter string) (int, error) {
@@ -1281,7 +1287,14 @@ func (s *Store) ListConversationsByFolder(folderID string, offset, limit int, so
 		SELECT 
 			COALESCE(thread_id, id) as conv_thread_id,
 			MIN(subject) as subject,
-			MAX(snippet) as snippet,
+			(
+				SELECT lm.snippet
+				FROM messages lm
+				WHERE lm.folder_id = ?
+					AND COALESCE(lm.thread_id, lm.id) = COALESCE(m.thread_id, m.id)
+				ORDER BY lm.date DESC, lm.uid DESC
+				LIMIT 1
+			) as snippet,
 			COUNT(*) as message_count,
 			SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) as unread_count,
 			MAX(CASE WHEN has_attachments = 1 THEN 1 ELSE 0 END) as has_attachments,
@@ -1290,15 +1303,15 @@ func (s *Store) ListConversationsByFolder(folderID string, offset, limit int, so
 			GROUP_CONCAT(id) as message_ids,
 			MAX(CASE WHEN smime_encrypted = 1 OR pgp_encrypted = 1 THEN 1 ELSE 0 END) as is_encrypted,
 			json_group_array(DISTINCT json_object('name', from_name, 'email', from_email)) as participants_json
-		FROM messages
-		WHERE folder_id = ?
-		GROUP BY COALESCE(thread_id, id)` +
-		filterHavingClause(filter, "") + `
+		FROM messages m
+		WHERE m.folder_id = ?
+		GROUP BY COALESCE(m.thread_id, m.id)` +
+		filterHavingClause(filter, "m.") + `
 		` + orderClause + `
 		LIMIT ? OFFSET ?
 	`
 
-	rows, err := s.db.Query(query, folderID, limit, offset)
+	rows, err := s.db.Query(query, folderID, folderID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query conversations: %w", err)
 	}
@@ -1431,17 +1444,33 @@ func (s *Store) GetConversation(threadID, folderID string) (*Conversation, error
 	// Exclude messages in Trash folder unless we're viewing Trash
 	// Use COALESCE to handle NULL values from aggregate functions when no rows match
 	trashFilter := ""
+	latestTrashFilter := ""
 	if folderType != "trash" {
 		trashFilter = "AND f.folder_type != 'trash'"
+		latestTrashFilter = "AND lf.folder_type != 'trash'"
 	}
 
 	// Scope to current folder + Sent + Drafts (for full conversation context)
 	folderFilter := "AND (m.folder_id = ? OR f.folder_type IN ('sent', 'drafts'))"
+	latestFolderFilter := "AND (lm.folder_id = ? OR lf.folder_type IN ('sent', 'drafts'))"
 
 	summaryQuery := fmt.Sprintf(`
 		SELECT
 			COALESCE(MIN(m.subject), '') as subject,
-			COALESCE(MAX(m.snippet), '') as snippet,
+			COALESCE((
+				SELECT lm.snippet
+				FROM messages lm
+				INNER JOIN folders lf ON lm.folder_id = lf.id
+				WHERE lm.account_id = ?
+					AND (
+						REPLACE(REPLACE(COALESCE(lm.thread_id, lm.id), '<', ''), '>', '') = ?
+						OR REPLACE(REPLACE(lm.message_id, '<', ''), '>', '') = ?
+						OR REPLACE(REPLACE(lm.in_reply_to, '<', ''), '>', '') = ?
+					)
+					%s %s
+				ORDER BY lm.date DESC, lm.uid DESC
+				LIMIT 1
+			), '') as snippet,
 			COUNT(*) as message_count,
 			COALESCE(SUM(CASE WHEN m.is_read = 0 THEN 1 ELSE 0 END), 0) as unread_count,
 			COALESCE(MAX(CASE WHEN m.has_attachments = 1 THEN 1 ELSE 0 END), 0) as has_attachments,
@@ -1455,12 +1484,16 @@ func (s *Store) GetConversation(threadID, folderID string) (*Conversation, error
 			OR REPLACE(REPLACE(m.in_reply_to, '<', ''), '>', '') = ?
 		)
 		%s %s
-	`, trashFilter, folderFilter)
+	`, latestTrashFilter, latestFolderFilter, trashFilter, folderFilter)
 
 	c := &Conversation{ThreadID: threadID}
 	var latestDateStr sql.NullString
 
-	err = s.db.QueryRow(summaryQuery, accountID, normalizedThreadID, normalizedThreadID, normalizedThreadID, folderID).Scan(
+	err = s.db.QueryRow(
+		summaryQuery,
+		accountID, normalizedThreadID, normalizedThreadID, normalizedThreadID, folderID,
+		accountID, normalizedThreadID, normalizedThreadID, normalizedThreadID, folderID,
+	).Scan(
 		&c.Subject,
 		&c.Snippet,
 		&c.MessageCount,
@@ -2139,7 +2172,14 @@ func (s *Store) SearchConversations(folderID, query string, offset, limit int, f
 		SELECT 
 			COALESCE(m.thread_id, m.id) as conv_thread_id,
 			MIN(m.subject) as subject,
-			MAX(m.snippet) as snippet,
+			(
+				SELECT lm.snippet
+				FROM messages lm
+				WHERE lm.folder_id = m.folder_id
+					AND COALESCE(lm.thread_id, lm.id) = COALESCE(m.thread_id, m.id)
+				ORDER BY lm.date DESC, lm.uid DESC
+				LIMIT 1
+			) as snippet,
 			MIN(m.from_name) as from_name,
 			COUNT(*) as message_count,
 			SUM(CASE WHEN m.is_read = 0 THEN 1 ELSE 0 END) as unread_count,
@@ -2254,7 +2294,15 @@ func (s *Store) SearchConversationsUnifiedInbox(query string, offset, limit int,
 		SELECT 
 			COALESCE(m.thread_id, m.id) as conv_thread_id,
 			MIN(m.subject) as subject,
-			MAX(m.snippet) as snippet,
+			(
+				SELECT lm.snippet
+				FROM messages lm
+				INNER JOIN folders lf ON lm.folder_id = lf.id AND lf.folder_type = 'inbox'
+				WHERE lm.account_id = m.account_id
+					AND COALESCE(lm.thread_id, lm.id) = COALESCE(m.thread_id, m.id)
+				ORDER BY lm.date DESC, lm.uid DESC
+				LIMIT 1
+			) as snippet,
 			MIN(m.from_name) as from_name,
 			COUNT(*) as message_count,
 			SUM(CASE WHEN m.is_read = 0 THEN 1 ELSE 0 END) as unread_count,
