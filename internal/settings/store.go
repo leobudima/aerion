@@ -46,8 +46,9 @@ const (
 // they explicitly opt in. Phase 1 reserves keys only for confirmed first-
 // party extensions (Calendar, Contacts).
 const (
-	KeyExtensionCalendarEnabled = "extension_calendar_enabled"
-	KeyExtensionContactsEnabled = "extension_contacts_enabled"
+	KeyExtensionCalendarEnabled        = "extension_calendar_enabled"
+	KeyExtensionContactsEnabled        = "extension_contacts_enabled"
+	KeyExtensionCalendarSidebarEnabled = "extension_calendarsidebar_enabled"
 )
 
 // AllExtensionKeys is the list of all known first-party extension names. Add
@@ -55,6 +56,7 @@ const (
 // IsExtensionEnabled / SetExtensionEnabled work on names from this list.
 var AllExtensionKeys = []string{
 	"calendar",
+	"calendarsidebar",
 	"contacts",
 }
 

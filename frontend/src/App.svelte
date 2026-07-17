@@ -17,7 +17,8 @@
   import ExtensionRail from './lib/components/rail/ExtensionRail.svelte'
   import ContactsPane from '$extensions/contacts/frontend/components/ContactsPane.svelte'
   import CalendarPane from '$extensions/calendar/frontend/components/CalendarPane.svelte'
-  import { refreshExtensionRegistry, getRailTabs } from '$lib/stores/extensionRegistry.svelte'
+  import CalendarSidebarPanel from '$extensions/calendarsidebar/frontend/components/CalendarSidebarPanel.svelte'
+  import { refreshExtensionRegistry, getRailTabs, isExtensionEnabled } from '$lib/stores/extensionRegistry.svelte'
   import { KEY } from '$lib/keyboard/shortcuts'
   import * as AlertDialog from '$lib/components/ui/alert-dialog'
   import Icon from '@iconify/svelte'
@@ -1695,6 +1696,37 @@
         onToggleMessageFocus={toggleMessageFocus}
       />
     </main>
+
+    {#if isExtensionEnabled('calendarsidebar')}
+      {#if !showCalendarPanel}
+        <button
+          type="button"
+          class="absolute right-2 top-2 z-20 p-2 rounded-md border border-border bg-background/95 shadow-sm hover:bg-muted transition-colors"
+          title="Open calendar panel"
+          onclick={() => setCalendarPanelOpen(true)}
+        >
+          <Icon icon="mdi:calendar-month-outline" class="w-5 h-5 text-muted-foreground" />
+        </button>
+      {:else}
+        {#if isResponsive()}
+          <div class="absolute inset-0 z-40 bg-black/40" role="presentation" onclick={() => setCalendarPanelOpen(false)}></div>
+        {:else}
+          <button
+            type="button"
+            class="w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors border-0 p-0 {isResizingCalendar ? 'bg-primary/40' : ''}"
+            onmousedown={startResizeCalendar}
+            aria-label="Resize calendar panel"
+          ></button>
+        {/if}
+        <section
+          class="{isResponsive() ? 'absolute inset-y-0 right-0 z-50 w-80 max-w-full shadow-xl' : 'flex-shrink-0'}"
+          style="{!isResponsive() ? `width: ${calendarWidth}px` : ''}"
+          aria-label="Calendar panel"
+        >
+          <CalendarSidebarPanel onClose={() => setCalendarPanelOpen(false)} />
+        </section>
+      {/if}
+    {/if}
     </div>
   </div>
 </div>

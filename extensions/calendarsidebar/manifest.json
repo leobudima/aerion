@@ -1,0 +1,14 @@
+{
+  "id": "calendarsidebar",
+  "name": "Calendar Sidebar",
+  "version": "0.1.0",
+  "description": "Upcoming-events agenda panel inside the mail view. Requires the Calendar extension for its data.",
+  "author": "leo",
+  "minAerionVersion": "0.3.0",
+  "capabilities": [
+    "calendar.read"
+  ],
+  "oauth": {
+    "first_party_uses_core_for_scopes": []
+  }
+}

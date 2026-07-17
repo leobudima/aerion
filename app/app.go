@@ -22,6 +22,7 @@ import (
 	"github.com/hkdb/aerion/internal/database"
 	"github.com/hkdb/aerion/internal/draft"
 	extcalendarbe "github.com/hkdb/aerion/extensions/calendar/backend"
+	extcalsidebarbe "github.com/hkdb/aerion/extensions/calendarsidebar/backend"
 	extcontactsbe "github.com/hkdb/aerion/extensions/contacts/backend"
 	extauth "github.com/hkdb/aerion/internal/extensions/auth"
 	extcompose "github.com/hkdb/aerion/internal/extensions/compose"
@@ -244,6 +245,7 @@ type App struct {
 	uiRegistry       *extui.Registry      // coreapi.UI impl: rail tabs, account-setup hooks, ...
 	contactsExt      *extcontactsbe.Extension // Contacts lifecycle handle (manifest + Register only)
 	calendarExt      *extcalendarbe.Extension // Calendar lifecycle handle (manifest + Register only)
+	calendarSidebarExt *extcalsidebarbe.Extension // Calendar Sidebar lifecycle handle (UI-only, no bridge)
 	knownExtensions  []coreapi.Extension      // all first-party extensions, iterated by ListExtensions
 	extensionUnregs  []coreapi.Unregister     // teardown funcs returned from each Extension.Register
 
@@ -653,7 +655,8 @@ func (a *App) Startup(ctx context.Context) {
 	// surface lives on each extension's Bridge struct, embedded into App.
 	a.contactsExt = extcontactsbe.NewExtension()
 	a.calendarExt = extcalendarbe.NewExtension()
-	a.knownExtensions = []coreapi.Extension{a.contactsExt, a.calendarExt}
+	a.calendarSidebarExt = extcalsidebarbe.NewExtension()
+	a.knownExtensions = []coreapi.Extension{a.contactsExt, a.calendarExt, a.calendarSidebarExt}
 
 	// Wire the Contacts extension's Bridge into App (embedded). Bridge
 	// methods become Wails-bindable via Go's method-promotion on the
