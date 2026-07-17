@@ -5,6 +5,7 @@
   import { Label } from '$lib/components/ui/label'
   import * as Select from '$lib/components/ui/select'
   import { ColorPicker } from '$lib/components/ui/color-picker'
+  import Switch from '$lib/components/ui/switch/Switch.svelte'
   import {
     providers,
     detectProvider,
@@ -14,6 +15,7 @@
     syncIntervalOptions,
     isOAuthProvider,
     allowsPasswordFallback,
+    supportsCustomOAuth,
     getOAuthProviderType,
     type EmailProvider,
     type OAuthProvider,
@@ -21,9 +23,9 @@
   import { oauthStore } from '$lib/stores/oauth.svelte'
   import { toasts } from '$lib/stores/toast'
   // @ts-ignore - wailsjs path
-  import { account, certificate } from '../../../../wailsjs/go/models'
+  import { account, certificate, app } from '../../../../wailsjs/go/models'
   // @ts-ignore - wailsjs path
-  import { GetAccountFoldersForMapping, GetAutoDetectedFolders, GetIdentities, AcceptCertificate } from '../../../../wailsjs/go/app/App'
+  import { GetAccountFoldersForMapping, GetAutoDetectedFolders, GetIdentities, AcceptCertificate, GetAllAccountIdentities, DiscoverOAuthProvider } from '../../../../wailsjs/go/app/App'
   import CertificateDialog from './CertificateDialog.svelte'
   import { accountStore } from '$lib/stores/accounts.svelte'
   import { _ } from '$lib/i18n'
@@ -67,6 +69,56 @@
   })
   let oauthInitialized = $state(false)
 
+  // Custom ("bring your own app") OAuth — for a generic IMAP account whose OAuth
+  // provider Aerion does not ship. Primary inputs are the issuer URL + client ID;
+  // OIDC discovery resolves the endpoints. Manual endpoint entry is an advanced
+  // fallback. IMAP/SMTP server settings come from the advanced section.
+  let customOAuthIssuer = $state('')
+  let customOAuthClientID = $state('')
+  let customOAuthClientSecret = $state('')
+  let customOAuthScopes = $state('')
+  // Resolved endpoints — from discovery, or typed directly in manual mode.
+  let customOAuthAuthURL = $state('')
+  let customOAuthTokenURL = $state('')
+  let customOAuthUserinfoURL = $state('')
+  let customOAuthManual = $state(false)
+  let customOAuthDiscovering = $state(false)
+  let customOAuthDiscoverError = $state('')
+  let customOAuthDiscovered = $state(false)
+  const customOAuthReady = $derived(
+    customOAuthAuthURL.trim() !== '' &&
+    customOAuthTokenURL.trim() !== '' &&
+    customOAuthClientID.trim() !== ''
+  )
+  // Lock the input fields once the flow is mid-sign-in or already succeeded.
+  const customOAuthInputsLocked = $derived(
+    oauthStore.flowState === 'pending' || oauthStore.flowState === 'success'
+  )
+  // Loopback redirect the user registers in their OAuth app. The port is assigned
+  // dynamically per RFC 8252 (this is why Aerion's shipped Google/Microsoft flows
+  // also use a dynamic port), so it's shown as a pattern for regex-matching
+  // providers; strict-match providers need the fixed-port option instead.
+  const customOAuthRedirectURI = 'http://localhost:[0-9]+/callback'
+
+  async function discoverCustomOAuth() {
+    const issuer = customOAuthIssuer.trim()
+    if (!issuer) return
+    customOAuthDiscovering = true
+    customOAuthDiscoverError = ''
+    try {
+      const doc = await DiscoverOAuthProvider(issuer)
+      customOAuthAuthURL = doc.authorizationEndpoint
+      customOAuthTokenURL = doc.tokenEndpoint
+      customOAuthUserinfoURL = doc.userinfoEndpoint
+      customOAuthDiscovered = true
+    } catch (err) {
+      customOAuthDiscoverError = err instanceof Error ? err.message : String(err)
+      customOAuthDiscovered = false
+    } finally {
+      customOAuthDiscovering = false
+    }
+  }
+
   // Form fields
   let name = $state('')
   let displayName = $state('')
@@ -81,6 +133,29 @@
   let smtpHost = $state('')
   let smtpPort = $state(587)
   let smtpSecurity = $state<string>('starttls')
+  let noOutgoingServer = $state(false)
+  let smtpUsername = $state('')
+  let smtpPassword = $state('')
+  let smtpUseSameAsIncoming = $state(true)
+  // Auto-mirror IMAP host into SMTP host for new Generic accounts: most
+  // providers use the same hostname or a near-identical subdomain swap,
+  // so typing the IMAP host pre-fills SMTP. Goes sticky-off the moment
+  // the user types directly into the SMTP field — manual edits stick.
+  let smtpHostMirrorsImap = $state(true)
+  let replyForwardIdentityID = $state('')
+  let availableIdentityGroups = $state<app.AccountIdentityGroup[]>([])
+  // True only when the user explicitly picked Generic/Custom (or the
+  // detector fell back to it). The "Same as incoming server" toggle is
+  // gated on this; pre-configured providers always reuse IMAP creds.
+  const isGenericProvider = $derived(selectedProvider?.id === 'custom' || selectedProvider?.id === 'generic')
+
+  function handleSmtpUseSameAsIncomingChange(v: boolean) {
+    smtpUseSameAsIncoming = v
+    if (v) {
+      smtpUsername = ''
+      smtpPassword = ''
+    }
+  }
   let syncPeriodDays = $state<string>('180')
   let syncInterval = $state<string>('30') // Default: 30 minutes
   let readReceiptRequestPolicy = $state<string>('never')
@@ -238,8 +313,26 @@
       checkOAuthConfiguration()
       // Initialize OAuth event listeners
       oauthStore.initEvents()
+      // Load sendable identity groups for the Reply/Forward-with picker.
+      // Used only when the user toggles "No outgoing server" on; cheap
+      // single Wails call so load it up-front for snappier UI.
+      loadIdentityGroups()
     }
   })
+
+  async function loadIdentityGroups() {
+    try {
+      const groups = (await GetAllAccountIdentities()) || []
+      // Exclude the account being edited (its own identities can't be
+      // a "Reply/Forward-with" target when it's marked no-outgoing) and
+      // any other no-outgoing accounts (their identities aren't sendable
+      // either).
+      availableIdentityGroups = groups.filter((g: app.AccountIdentityGroup) => g.account?.id !== editAccount?.id && !g.account?.noOutgoingServer)
+    } catch (err) {
+      console.error('Failed to load identity groups for Reply/Forward-with picker:', err)
+      availableIdentityGroups = []
+    }
+  }
 
   // Update authMethod when OAuth configuration finishes loading.
   // If a user selects a provider before the async OAuth check completes,
@@ -281,6 +374,30 @@
   // Start OAuth flow for the selected provider
   async function startOAuthFlow() {
     if (!selectedProvider) return
+
+    // Custom ("bring your own app") provider: build the flow from user-entered
+    // endpoints/creds rather than a shipped provider type.
+    if (supportsCustomOAuth(selectedProvider) && authMethod === 'oauth2') {
+      if (!customOAuthReady) return
+      const scopes = customOAuthScopes
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      try {
+        await oauthStore.startCustomFlow(
+          customOAuthAuthURL.trim(),
+          customOAuthTokenURL.trim(),
+          customOAuthUserinfoURL.trim(),
+          scopes,
+          customOAuthClientID.trim(),
+          customOAuthClientSecret.trim()
+        )
+      } catch (err) {
+        console.error('Failed to start custom OAuth flow:', err)
+      }
+      return
+    }
+
     const oauthType = getOAuthProviderType(selectedProvider)
     if (!oauthType) return
 
@@ -392,6 +509,10 @@
       smtpHost,
       smtpPort,
       smtpSecurity,
+      noOutgoingServer,
+      smtpUsername,
+      smtpPassword,
+      replyForwardIdentityId: replyForwardIdentityID,
       authType: authMethod,
       syncPeriodDays: Number(syncPeriodDays),
       syncInterval: Number(syncInterval),
@@ -427,9 +548,19 @@
     }
 
     if (!imapHost.trim()) errors.imapHost = $_('account.imapHostRequired')
-    if (!smtpHost.trim()) errors.smtpHost = $_('account.smtpHostRequired')
     if (imapPort < 1 || imapPort > 65535) errors.imapPort = $_('account.invalidPort')
-    if (smtpPort < 1 || smtpPort > 65535) errors.smtpPort = $_('account.invalidPort')
+    // SMTP host/port checks only when the user wants outgoing.
+    if (!noOutgoingServer) {
+      if (!smtpHost.trim()) errors.smtpHost = $_('account.smtpHostRequired')
+      if (smtpPort < 1 || smtpPort > 65535) errors.smtpPort = $_('account.invalidPort')
+    }
+    // Separate SMTP credentials (Generic only, toggle off): username
+    // always required; password required on NEW accounts. Blank on EDIT
+    // is "keep existing keyring entry."
+    if (!noOutgoingServer && isGenericProvider && !smtpUseSameAsIncoming) {
+      if (!smtpUsername.trim()) errors.smtpUsername = $_('account.usernameRequired')
+      if (!editAccount && !smtpPassword) errors.smtpPassword = $_('account.passwordRequired')
+    }
 
     return Object.keys(errors).length === 0
   }
@@ -655,6 +786,115 @@
 
         <!-- Authentication Section -->
         <div class="space-y-3">
+          <!-- Shared OAuth flow status (idle/pending/success/error). Used by both the
+               shipped-provider block and the custom ("bring your own app") block.
+               signInDisabled gates the initial sign-in button (e.g. until the custom
+               endpoint/client fields are filled). -->
+          {#snippet oauthFlowStatus(signInDisabled = false)}
+            <div class="rounded-lg border border-border p-4 space-y-3">
+              {#if oauthStore.flowState === 'idle' || oauthStore.flowState === 'cancelled'}
+                <!-- Initial state - show sign in button -->
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="w-full h-12"
+                  disabled={signInDisabled}
+                  onclick={startOAuthFlow}
+                >
+                  <Icon icon={getOAuthButtonIcon(selectedProvider)} class="w-5 h-5 mr-3" />
+                  {getOAuthButtonText(selectedProvider)}
+                </Button>
+                <p class="text-xs text-muted-foreground text-center">
+                  {$_('account.redirectToSignIn')}
+                </p>
+              {:else if oauthStore.flowState === 'pending'}
+                <!-- Waiting for OAuth callback -->
+                <div class="flex flex-col items-center gap-3 py-2">
+                  <Icon icon="mdi:loading" class="w-8 h-8 animate-spin text-primary" />
+                  <div class="text-center">
+                    <p class="text-sm font-medium">{$_('account.waitingForAuth')}</p>
+                    <p class="text-xs text-muted-foreground mt-1">
+                      {$_('account.completeSignIn')}
+                    </p>
+                  </div>
+                  {#if oauthStore.authURL}
+                    <button
+                      type="button"
+                      class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
+                      onclick={handleCopyOAuthLink}
+                    >
+                      {oauthLinkCopied ? $_('account.linkCopied') : $_('viewer.copyLink')}
+                      <Icon icon={oauthLinkCopied ? 'mdi:check' : 'mdi:content-copy'} class="w-3.5 h-3.5" />
+                    </button>
+                  {/if}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={cancelOAuthFlow}
+                  >
+                    {$_('common.cancel')}
+                  </Button>
+                </div>
+              {:else if oauthStore.flowState === 'success'}
+                <!-- OAuth completed successfully -->
+                <div class="flex items-center gap-3 py-2">
+                  <div class="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Icon icon="mdi:check" class="w-5 h-5 text-green-500" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-green-600 dark:text-green-400">
+                      {$_('account.connectedSuccessfully')}
+                    </p>
+                    <p class="text-xs text-muted-foreground truncate">
+                      {oauthStore.flowResult?.email}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={() => {
+                      oauthStore.reset()
+                    }}
+                  >
+                    <Icon icon="mdi:refresh" class="w-4 h-4" />
+                  </Button>
+                </div>
+              {:else if oauthStore.flowState === 'error'}
+                <!-- OAuth failed -->
+                <div class="space-y-3">
+                  <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <Icon icon="mdi:alert" class="w-5 h-5 text-destructive" />
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-destructive">
+                        {$_('account.authFailed')}
+                      </p>
+                      <p class="text-xs text-muted-foreground mt-1">
+                        {oauthStore.flowError || $_('account.authFailed')}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="w-full"
+                    disabled={signInDisabled}
+                    onclick={startOAuthFlow}
+                  >
+                    {$_('account.tryAgain')}
+                  </Button>
+                </div>
+              {/if}
+            </div>
+            {#if errors.oauth}
+              <p class="text-sm text-destructive">{errors.oauth}</p>
+            {/if}
+          {/snippet}
+
           {#if canUseOAuth(selectedProvider) && !editAccount}
             <!-- OAuth Provider - Show Sign In Button -->
             <div class="space-y-3">
@@ -687,107 +927,7 @@
               {/if}
 
               {#if authMethod === 'oauth2'}
-                <!-- OAuth Flow UI -->
-                <div class="rounded-lg border border-border p-4 space-y-3">
-                  {#if oauthStore.flowState === 'idle' || oauthStore.flowState === 'cancelled'}
-                    <!-- Initial state - show sign in button -->
-                    <Button
-                      type="button"
-                      variant="outline"
-                      class="w-full h-12"
-                      onclick={startOAuthFlow}
-                    >
-                      <Icon icon={getOAuthButtonIcon(selectedProvider)} class="w-5 h-5 mr-3" />
-                      {getOAuthButtonText(selectedProvider)}
-                    </Button>
-                    <p class="text-xs text-muted-foreground text-center">
-                      {$_('account.redirectToSignIn')}
-                    </p>
-                  {:else if oauthStore.flowState === 'pending'}
-                    <!-- Waiting for OAuth callback -->
-                    <div class="flex flex-col items-center gap-3 py-2">
-                      <Icon icon="mdi:loading" class="w-8 h-8 animate-spin text-primary" />
-                      <div class="text-center">
-                        <p class="text-sm font-medium">{$_('account.waitingForAuth')}</p>
-                        <p class="text-xs text-muted-foreground mt-1">
-                          {$_('account.completeSignIn')}
-                        </p>
-                      </div>
-                      {#if oauthStore.authURL}
-                        <button
-                          type="button"
-                          class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
-                          onclick={handleCopyOAuthLink}
-                        >
-                          {oauthLinkCopied ? $_('account.linkCopied') : $_('viewer.copyLink')}
-                          <Icon icon={oauthLinkCopied ? 'mdi:check' : 'mdi:content-copy'} class="w-3.5 h-3.5" />
-                        </button>
-                      {/if}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onclick={cancelOAuthFlow}
-                      >
-                        {$_('common.cancel')}
-                      </Button>
-                    </div>
-                  {:else if oauthStore.flowState === 'success'}
-                    <!-- OAuth completed successfully -->
-                    <div class="flex items-center gap-3 py-2">
-                      <div class="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                        <Icon icon="mdi:check" class="w-5 h-5 text-green-500" />
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-green-600 dark:text-green-400">
-                          {$_('account.connectedSuccessfully')}
-                        </p>
-                        <p class="text-xs text-muted-foreground truncate">
-                          {oauthStore.flowResult?.email}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onclick={() => {
-                          oauthStore.reset()
-                        }}
-                      >
-                        <Icon icon="mdi:refresh" class="w-4 h-4" />
-                      </Button>
-                    </div>
-                  {:else if oauthStore.flowState === 'error'}
-                    <!-- OAuth failed -->
-                    <div class="space-y-3">
-                      <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                          <Icon icon="mdi:alert" class="w-5 h-5 text-destructive" />
-                        </div>
-                        <div class="flex-1">
-                          <p class="text-sm font-medium text-destructive">
-                            {$_('account.authFailed')}
-                          </p>
-                          <p class="text-xs text-muted-foreground mt-1">
-                            {$_('account.authFailed')}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        class="w-full"
-                        onclick={startOAuthFlow}
-                      >
-                        {$_('account.tryAgain')}
-                      </Button>
-                    </div>
-                  {/if}
-                </div>
-                {#if errors.oauth}
-                  <p class="text-sm text-destructive">{errors.oauth}</p>
-                {/if}
+                {@render oauthFlowStatus()}
               {:else}
                 <!-- Password field for app password -->
                 <div class="space-y-2">
@@ -796,6 +936,173 @@
                     id="password"
                     type="password"
                     placeholder={$_('account.enterAppPassword')}
+                    bind:value={password}
+                    class={errors.password ? 'border-destructive' : ''}
+                  />
+                  {#if errors.password}
+                    <p class="text-sm text-destructive">{errors.password}</p>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {:else if supportsCustomOAuth(selectedProvider) && !editAccount}
+            <!-- Generic provider: Password or user-supplied ("bring your own app") OAuth -->
+            <div class="space-y-3">
+              <Label>{$_('account.authentication')}</Label>
+
+              <div class="flex gap-2">
+                <Button
+                  type="button"
+                  variant={authMethod === 'password' ? 'default' : 'outline'}
+                  size="sm"
+                  onclick={() => authMethod = 'password'}
+                  class="flex-1"
+                >
+                  <Icon icon="mdi:key" class="w-4 h-4 mr-2" />
+                  {$_('account.password')}
+                </Button>
+                <Button
+                  type="button"
+                  variant={authMethod === 'oauth2' ? 'default' : 'outline'}
+                  size="sm"
+                  onclick={() => authMethod = 'oauth2'}
+                  class="flex-1"
+                >
+                  <Icon icon="mdi:shield-key-outline" class="w-4 h-4 mr-2" />
+                  OAuth
+                </Button>
+              </div>
+
+              {#if authMethod === 'oauth2'}
+                <!-- Issuer + client credentials; OIDC discovery resolves the endpoints -->
+                <div class="rounded-lg border border-border p-4 space-y-3">
+                  <p class="text-xs text-muted-foreground">{$_('account.customOAuthHelp')}</p>
+
+                  <div class="space-y-2">
+                    <Label for="custom-oauth-issuer">{$_('account.customOAuthIssuer')}</Label>
+                    <div class="flex gap-2">
+                      <Input
+                        id="custom-oauth-issuer"
+                        type="url"
+                        placeholder="https://mail.example.com"
+                        bind:value={customOAuthIssuer}
+                        disabled={customOAuthInputsLocked}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onclick={discoverCustomOAuth}
+                        disabled={!customOAuthIssuer.trim() || customOAuthDiscovering || customOAuthInputsLocked}
+                      >
+                        {#if customOAuthDiscovering}
+                          <Icon icon="mdi:loading" class="w-4 h-4 animate-spin" />
+                        {:else}
+                          {$_('account.customOAuthDiscover')}
+                        {/if}
+                      </Button>
+                    </div>
+                    <p class="text-xs text-muted-foreground">{$_('account.customOAuthIssuerHelp')}</p>
+                    {#if customOAuthDiscoverError}
+                      <p class="text-xs text-destructive">{customOAuthDiscoverError}</p>
+                    {:else if customOAuthDiscovered}
+                      <p class="text-xs text-green-600 dark:text-green-400 inline-flex items-center gap-1">
+                        <Icon icon="mdi:check" class="w-3.5 h-3.5" />
+                        {$_('account.customOAuthDiscovered')}
+                      </p>
+                    {/if}
+                  </div>
+
+                  <div class="space-y-2">
+                    <Label for="custom-oauth-client-id">{$_('account.customOAuthClientId')}</Label>
+                    <Input
+                      id="custom-oauth-client-id"
+                      type="text"
+                      bind:value={customOAuthClientID}
+                      disabled={customOAuthInputsLocked}
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <Label for="custom-oauth-client-secret">{$_('account.customOAuthClientSecret')}</Label>
+                    <Input
+                      id="custom-oauth-client-secret"
+                      type="password"
+                      placeholder={$_('account.customOAuthClientSecretPlaceholder')}
+                      bind:value={customOAuthClientSecret}
+                      disabled={customOAuthInputsLocked}
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <Label for="custom-oauth-scopes">{$_('account.customOAuthScopes')}</Label>
+                    <Input
+                      id="custom-oauth-scopes"
+                      type="text"
+                      placeholder="offline_access"
+                      bind:value={customOAuthScopes}
+                      disabled={customOAuthInputsLocked}
+                    />
+                    <p class="text-xs text-muted-foreground">{$_('account.customOAuthScopesHelp')}</p>
+                  </div>
+
+                  <!-- Redirect URI the user registers in their OAuth app -->
+                  <div class="space-y-1">
+                    <Label>{$_('account.customOAuthRedirectUri')}</Label>
+                    <code class="block text-xs bg-muted rounded px-2 py-1.5 break-all">{customOAuthRedirectURI}</code>
+                    <p class="text-xs text-muted-foreground">{$_('account.customOAuthRedirectUriHelp')}</p>
+                  </div>
+
+                  <!-- Advanced: manual endpoint entry (fallback for servers without discovery) -->
+                  <button
+                    type="button"
+                    class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                    onclick={() => customOAuthManual = !customOAuthManual}
+                  >
+                    <Icon icon={customOAuthManual ? 'mdi:chevron-down' : 'mdi:chevron-right'} class="w-4 h-4" />
+                    {$_('account.customOAuthManual')}
+                  </button>
+                  {#if customOAuthManual}
+                    <div class="space-y-2">
+                      <Label for="custom-oauth-auth-url">{$_('account.customOAuthAuthUrl')}</Label>
+                      <Input
+                        id="custom-oauth-auth-url"
+                        type="url"
+                        placeholder="https://auth.example.com/authorize"
+                        bind:value={customOAuthAuthURL}
+                        disabled={customOAuthInputsLocked}
+                      />
+                    </div>
+                    <div class="space-y-2">
+                      <Label for="custom-oauth-token-url">{$_('account.customOAuthTokenUrl')}</Label>
+                      <Input
+                        id="custom-oauth-token-url"
+                        type="url"
+                        placeholder="https://auth.example.com/token"
+                        bind:value={customOAuthTokenURL}
+                        disabled={customOAuthInputsLocked}
+                      />
+                    </div>
+                    <div class="space-y-2">
+                      <Label for="custom-oauth-userinfo-url">{$_('account.customOAuthUserinfoUrl')}</Label>
+                      <Input
+                        id="custom-oauth-userinfo-url"
+                        type="url"
+                        placeholder="https://auth.example.com/userinfo"
+                        bind:value={customOAuthUserinfoURL}
+                        disabled={customOAuthInputsLocked}
+                      />
+                    </div>
+                  {/if}
+                </div>
+
+                {@render oauthFlowStatus(!customOAuthReady)}
+              {:else}
+                <!-- Password field -->
+                <div class="space-y-2">
+                  <Label for="password">{$_('account.password')}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder={$_('account.enterPassword')}
                     bind:value={password}
                     class={errors.password ? 'border-destructive' : ''}
                   />
@@ -870,6 +1177,12 @@
                   type="text"
                   placeholder="imap.example.com"
                   bind:value={imapHost}
+                  oninput={(e) => {
+                    const v = (e.target as HTMLInputElement).value
+                    if (isGenericProvider && !editAccount && smtpHostMirrorsImap) {
+                      smtpHost = v
+                    }
+                  }}
                   class={errors.imapHost ? 'border-destructive' : ''}
                 />
                 {#if errors.imapHost}
@@ -905,6 +1218,64 @@
             </div>
           </div>
 
+          <!-- "No outgoing server" toggle (above SMTP). When on, SMTP +
+               SMTP-auth sections collapse and the composer's From dropdown
+               excludes this account. -->
+          <div class="space-y-2">
+            <label class="flex items-center gap-3 text-sm">
+              <Switch bind:checked={noOutgoingServer} />
+              <span class="font-medium">{$_('account.noOutgoingServer')}</span>
+            </label>
+            <p class="text-xs text-muted-foreground">{$_('account.noOutgoingServerHelp')}</p>
+
+            {#if noOutgoingServer}
+              <!-- Reply/Forward-with picker. Same shape as the composer's
+                   From dropdown. Default = empty value, which the composer
+                   resolves to the user's default sending identity. -->
+              <div class="pt-2 space-y-1">
+                <Label>{$_('account.replyForwardWith')}</Label>
+                <Select.Root bind:value={replyForwardIdentityID}>
+                  <Select.Trigger class="h-10">
+                    <Select.Value placeholder={$_('account.replyForwardWithDefault')}>
+                      {#if replyForwardIdentityID}
+                        {@const allIdentities = availableIdentityGroups.flatMap(g => (g.identities || []).map(i => ({ identity: i, group: g })))}
+                        {@const found = allIdentities.find(x => x.identity.id === replyForwardIdentityID)}
+                        {#if found}
+                          {#if found.group.account?.color}
+                            <span class="inline-block w-2 h-2 rounded-full mr-1.5 flex-shrink-0" style="background-color: {found.group.account.color}"></span>
+                          {/if}
+                          {found.identity.name} &lt;{found.identity.email}&gt;
+                        {:else}
+                          {$_('account.replyForwardWithDefault')}
+                        {/if}
+                      {:else}
+                        {$_('account.replyForwardWithDefault')}
+                      {/if}
+                    </Select.Value>
+                  </Select.Trigger>
+                  <Select.Content>
+                    <Select.Item value="" label={$_('account.replyForwardWithDefault')} />
+                    {#each availableIdentityGroups as group (group.account?.id)}
+                      <Select.Group>
+                        <Select.GroupHeading class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground">
+                          {#if group.account?.color}
+                            <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background-color: {group.account.color}"></span>
+                          {/if}
+                          {group.account?.name || group.account?.email}
+                        </Select.GroupHeading>
+                        {#each group.identities || [] as identity (identity.id)}
+                          <Select.Item value={identity.id} label="{identity.name} <{identity.email}>" />
+                        {/each}
+                      </Select.Group>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
+                <p class="text-xs text-muted-foreground">{$_('account.replyForwardWithHelp')}</p>
+              </div>
+            {/if}
+          </div>
+
+          {#if !noOutgoingServer}
           <!-- SMTP Settings -->
           <div class="space-y-3">
             <h4 class="text-sm font-medium">{$_('account.outgoingMail')}</h4>
@@ -916,6 +1287,7 @@
                   type="text"
                   placeholder="smtp.example.com"
                   bind:value={smtpHost}
+                  oninput={() => { smtpHostMirrorsImap = false }}
                   class={errors.smtpHost ? 'border-destructive' : ''}
                 />
                 {#if errors.smtpHost}
@@ -949,7 +1321,52 @@
                 </div>
               </div>
             </div>
+
+            {#if isGenericProvider}
+              <!-- SMTP authentication subsection — Generic only. -->
+              <div class="space-y-3 pt-3 border-t border-border">
+                <h4 class="text-sm font-medium">{$_('account.smtpAuthentication')}</h4>
+                <label class="flex items-center gap-3 text-sm">
+                  <Switch
+                    checked={smtpUseSameAsIncoming}
+                    onCheckedChange={handleSmtpUseSameAsIncomingChange}
+                  />
+                  <span>{$_('account.smtpUseSameAsIncoming')}</span>
+                </label>
+                {#if !smtpUseSameAsIncoming}
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-2">
+                      <Label for="wizardSmtpUsername">{$_('account.username')}</Label>
+                      <Input
+                        id="wizardSmtpUsername"
+                        type="text"
+                        placeholder={$_('account.smtpUsernamePlaceholder')}
+                        bind:value={smtpUsername}
+                        class={errors.smtpUsername ? 'border-destructive' : ''}
+                      />
+                      {#if errors.smtpUsername}
+                        <p class="text-sm text-destructive">{errors.smtpUsername}</p>
+                      {/if}
+                    </div>
+                    <div class="space-y-2">
+                      <Label for="wizardSmtpPassword">{$_('account.password')}</Label>
+                      <Input
+                        id="wizardSmtpPassword"
+                        type="password"
+                        placeholder={$_('account.smtpPasswordPlaceholder')}
+                        bind:value={smtpPassword}
+                        class={errors.smtpPassword ? 'border-destructive' : ''}
+                      />
+                      {#if errors.smtpPassword}
+                        <p class="text-sm text-destructive">{errors.smtpPassword}</p>
+                      {/if}
+                    </div>
+                  </div>
+                {/if}
+              </div>
+            {/if}
           </div>
+          {/if}
 
           <!-- Sync Settings -->
           <div class="space-y-2">

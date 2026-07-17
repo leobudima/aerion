@@ -1,14 +1,84 @@
 # CHANGELOG
 
 
-**v0.2.5 - 05-26-2026**
+**v0.3.1 - 07-08-2026**
+---
+
+- Added custom oauth for imap, cardav, and caldav (designed for and tested with [Stalwart](https://stalw.art))
+- Custom oauth refresh token handling fix
+- Use TOFU cert store for DAV certs
+- Added Google meet link support - needs force resync
+- Timezone config fix
+- Multi-day week and day view fix
+- Multi-day monthly view fix - [#304](https://github.com/hkdb/aerion/issues/304)
+- Composer body config - [#216](https://github.com/hkdb/aerion/issues/216)
+- Attachment parsing improvements - [#307](https://github.com/hkdb/aerion/issues/307)
+- Fixed replying with correct identity [#325](https://github.com/hkdb/aerion/issues/325)
+- Added error message for adding account with same e-mail - [#318](https://github.com/hkdb/aerion/issues/318)
+- Made number of events per day in month view dynamics - [#323](https://github.com/hkdb/aerion/issues/323)
+- Fixed icon rendering with newer DEs and compositors - [#316](https://github.com/hkdb/aerion/issues/316)
+- Fixed diff tz time display in calendar
+- Improved calendar about field rendering - needs force resync
+- Fixed calendar link handling
+
+
+**v0.3.0 - 06-23-2026**
+---
+
+- Prepared CardDav infra for extensibility
+- Added Extension infrastructure
+- ALPHA: Added Contacts extension - shipped disabled
+- ALPHA: Added Calendar extension - shipped disabled - [#28](https://github.com/hkdb/aerion/issues/28)
+- Updated extension translations:
+    - Czech
+    - French
+    - German
+    - Italian
+    - Vietnamese
+    - Chinese - CN, HK, TW
+- Added shortcuts: V for View Message and D for Delete Message
+- Added runtime config of client id/secret - [#138](https://github.com/hkdb/aerion/issues/138)
+- Added force re-sync of contacts
+- Added Vietnamese translation - PR [#232](https://github.com/hkdb/aerion/pull/232)
+- Added separate smtp credentials option - [#264](https://github.com/hkdb/aerion/issues/264)
+- Added no outgoing server option - [#132](https://github.com/hkdb/aerion/issues/132) [(#134)](https://github.com/hkdb/aerion/pull/134)
+- Added fallback for Mailfence and other non-quote-compliant providers - [#209](https://github.com/hkdb/aerion/issues/209)
+- Added smtp auto-pre-fill of smtp from imap input - [#179](https://github.com/hkdb/aerion/issues/179)
+- Added delete account button in settings accounts tab
+- Fixed CardDav remove provider code path to not leave orphaned contacts in db
+- Fixed Sent/Draft folder message listing - [#227](https://github.com/hkdb/aerion/issues/227)
+- Fixed unified inbox actions - [#234](https://github.com/hkdb/aerion/issues/234)
+- Fixed Microsoft admin pre-approved oauth - [#29](https://github.com/hkdb/aerion/issues/29)
+- Fixed read/star polluting undo - [#243](https://github.com/hkdb/aerion/issues/243)
+- Fixed duplicate unified inbox freeze - [#241](https://github.com/hkdb/aerion/issues/241)
+- Fixed unparsible body fetch handling - [#240](https://github.com/hkdb/aerion/issues/240)
+- Added incremental flag sync - [#240](https://github.com/hkdb/aerion/issues/240)
+- Fixed drag-n-drop inline image - [#224](https://github.com/hkdb/aerion/issues/224)
+- Fixed duplicate inline image rendering
+- Fixed post action blank conversation pane - [#271](https://github.com/hkdb/aerion/issues/271)
+- Fixed separate smtp creds persistence - [#270](https://github.com/hkdb/aerion/issues/270)
+- Fixed plaintext reply/fwd - [#285](https://github.com/hkdb/aerion/issues/285)
+- Fixed print feature - [#280](https://github.com/hkdb/aerion/issues/280)
+- Fixed Windows links - [#261](https://github.com/hkdb/aerion/issues/261)
+- Hardened Windows URL/attachment opening - Reported by @freemans32
+- Fixed mail with no body + attachment - [#293](https://github.com/hkdb/aerion/issues/293)
+- Bumped flatpak build to Gnome 50 runtime
+
+
+**v0.2.5 - 05-27-2026**
 ---
 
 - Sync progress indication redesign and shifting folder tree fix - [#204](https://github.com/hkdb/aerion/issues/204)
 - Added German translation - PR [#194](https://github.com/hkdb/aerion/pull/194)
+- Added Italian translation - PR [#208](https://github.com/hkdb/aerion/pull/208)
 - Dark content auto bg color and overrides - [#195](https://github.com/hkdb/aerion/issues/195)
 - Added guard rails to prevent accidental close of dialogs - [#201](https://github.com/hkdb/aerion/issues/201) - [#198](https://github.com/hkdb/aerion/issues/198)
 - Fixed message list on folder switch bug - [#200](https://github.com/hkdb/aerion/issues/200)
+- Fixed detached composer draft ops - [#213](https://github.com/hkdb/aerion/issues/213) - [#214](https://github.com/hkdb/aerion/issues/214)
+- Fixed send receipt feature
+- Fixed dark themes composer lists - [#215](https://github.com/hkdb/aerion/issues/215)
+- Fixed setting dialog layout - [#203](https://github.com/hkdb/aerion/issues/203)
+- Fixed (workaround) folder subscription for non-compliant providers (Microsoft 365, etc) - [#218](https://github.com/hkdb/aerion/issues/218)
 - Code cleanup prior to diving into v0.3.0
 
 

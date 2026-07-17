@@ -11,6 +11,8 @@ import (
 
 	"github.com/hkdb/aerion/internal/logging"
 	_ "modernc.org/sqlite"
+
+	"github.com/rs/zerolog"
 )
 
 // Connection pool constants
@@ -39,7 +41,7 @@ const (
 type DB struct {
 	*sql.DB
 	path string
-	log  func() // lazy logger initialization
+	log  zerolog.Logger
 }
 
 // Open opens or creates a SQLite database at the given path
@@ -80,15 +82,17 @@ func Open(path string) (*DB, error) {
 		return nil, fmt.Errorf("failed to set database permissions: %w", err)
 	}
 
-	return &DB{DB: db, path: path}, nil
+	return &DB{
+		DB:   db,
+		path: path,
+		log:  logging.WithComponent("database"),
+	}, nil
 }
 
 // UpdateIdleConns adjusts the number of idle connections based on account count.
 // This should be called when accounts are added or removed.
 // Formula: BaseIdleConns + (numAccounts * IdleConnsPerAccount), capped at MaxIdleConns
 func (db *DB) UpdateIdleConns(numAccounts int) {
-	log := logging.WithComponent("database")
-
 	idleConns := BaseIdleConns + (numAccounts * IdleConnsPerAccount)
 
 	// Apply bounds
@@ -101,7 +105,7 @@ func (db *DB) UpdateIdleConns(numAccounts int) {
 
 	db.SetMaxIdleConns(idleConns)
 
-	log.Debug().
+	db.log.Debug().
 		Int("accounts", numAccounts).
 		Int("idleConns", idleConns).
 		Msg("Updated database connection pool")
@@ -127,23 +131,21 @@ func (db *DB) Checkpoint() error {
 // checkpoints the WAL file. This should be called once at application startup.
 // The routine will stop when the context is cancelled.
 func (db *DB) StartCheckpointRoutine(ctx context.Context) {
-	log := logging.WithComponent("database")
-
 	ticker := time.NewTicker(CheckpointInterval)
 	defer ticker.Stop()
 
-	log.Debug().Dur("interval", CheckpointInterval).Msg("WAL checkpoint routine started")
+	db.log.Debug().Dur("interval", CheckpointInterval).Msg("WAL checkpoint routine started")
 
 	for {
 		select {
 		case <-ticker.C:
 			if err := db.Checkpoint(); err != nil {
-				log.Error().Err(err).Msg("Periodic WAL checkpoint failed")
-			} else {
-				log.Debug().Msg("Periodic WAL checkpoint completed")
+				db.log.Error().Err(err).Msg("Periodic WAL checkpoint failed")
+				continue
 			}
+			db.log.Debug().Msg("Periodic WAL checkpoint completed")
 		case <-ctx.Done():
-			log.Debug().Msg("WAL checkpoint routine stopped")
+			db.log.Debug().Msg("WAL checkpoint routine stopped")
 			return
 		}
 	}
@@ -152,6 +154,20 @@ func (db *DB) StartCheckpointRoutine(ctx context.Context) {
 // Path returns the database file path
 func (db *DB) Path() string {
 	return db.path
+}
+
+// ErrSchemaTooNew is returned by Migrate when the database's recorded migration
+// version is HIGHER than the highest migration this build knows about. This
+// happens when a user downgrades Aerion after a newer version applied a
+// forward-only migration. Callers (App.Startup) surface a friendly dialog
+// pointing the user at docs/SQL_ROLLBACK.md.
+type ErrSchemaTooNew struct {
+	DBVersion    int
+	BuildVersion int
+}
+
+func (e *ErrSchemaTooNew) Error() string {
+	return fmt.Sprintf("database schema version %d is newer than this Aerion build (max known: %d). See https://github.com/hkdb/aerion/blob/main/docs/SQL_ROLLBACK.md", e.DBVersion, e.BuildVersion)
 }
 
 // Migrate runs all pending migrations
@@ -171,6 +187,18 @@ func (db *DB) Migrate() error {
 	err := db.QueryRow("SELECT COALESCE(MAX(version), 0) FROM migrations").Scan(&currentVersion)
 	if err != nil {
 		return fmt.Errorf("failed to get current migration version: %w", err)
+	}
+
+	// Schema-version gate: refuse if the DB was written by a newer Aerion. The
+	// DB has migrations this build doesn't know how to interpret — opening it
+	// would query columns/tables in an unexpected shape and likely corrupt
+	// autocomplete or crash. Surface a typed error the app can catch.
+	maxKnown := 0
+	if len(migrations) > 0 {
+		maxKnown = migrations[len(migrations)-1].Version
+	}
+	if currentVersion > maxKnown {
+		return &ErrSchemaTooNew{DBVersion: currentVersion, BuildVersion: maxKnown}
 	}
 
 	// Apply migrations

@@ -5,9 +5,9 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import { Button } from '$lib/components/ui/button'
   // @ts-ignore - wailsjs path
-  import { GetReadReceiptResponsePolicy, SetReadReceiptResponsePolicy, GetMarkAsReadDelay, SetMarkAsReadDelay, GetMessageListDensity, SetMessageListDensity, GetThreadMessagesSortOrder, SetThreadMessagesSortOrder, GetThemeMode, SetThemeMode, GetShowTitleBar, SetShowTitleBar, GetRunBackground, SetRunBackground, GetStartHidden, SetStartHidden, GetAutostart, SetAutostart, GetLanguage, SetLanguage, GetComposerMode, SetComposerMode, GetMailtoMode, SetMailtoMode, GetComposerFormat, SetComposerFormat, GetNativeTitleBar, SetNativeTitleBar, GetAlwaysLoadImages, SetAlwaysLoadImages, GetDarkMailContent, SetDarkMailContent, GetAccentBarUnread, SetAccentBarUnread, GetShowMessageListCircles, SetShowMessageListCircles, GetShowViewerCircles, SetShowViewerCircles, GetGroupMessagesByDate, SetGroupMessagesByDate, QuitApp } from '../../../../wailsjs/go/app/App.js'
+  import { GetReadReceiptResponsePolicy, SetReadReceiptResponsePolicy, GetMarkAsReadDelay, SetMarkAsReadDelay, GetMessageListDensity, SetMessageListDensity, GetThreadMessagesSortOrder, SetThreadMessagesSortOrder, GetThemeMode, SetThemeMode, GetShowTitleBar, SetShowTitleBar, GetRunBackground, SetRunBackground, GetStartHidden, SetStartHidden, GetAutostart, SetAutostart, GetLanguage, SetLanguage, GetComposerMode, SetComposerMode, GetMailtoMode, SetMailtoMode, GetComposerFormat, SetComposerFormat, GetNativeTitleBar, SetNativeTitleBar, GetAlwaysLoadImages, SetAlwaysLoadImages, GetDarkMailContent, SetDarkMailContent, GetDarkComposerBody, SetDarkComposerBody, GetAccentBarUnread, SetAccentBarUnread, GetShowMessageListCircles, SetShowMessageListCircles, GetShowViewerCircles, SetShowViewerCircles, GetGroupMessagesByDate, SetGroupMessagesByDate, QuitApp } from '../../../../wailsjs/go/app/App.js'
   import { addToast } from '$lib/stores/toast'
-  import { setMessageListDensity as updateDensityStore, setThreadMessagesSortOrder as updateThreadMessagesSortOrderStore, setThemeMode as updateThemeStore, setShowTitleBar as updateShowTitleBarStore, setRunBackground as updateRunBackgroundStore, setStartHidden as updateStartHiddenStore, setAutostart as updateAutostartStore, setLanguage as updateLanguageStore, setComposerMode as updateComposerModeStore, setMailtoMode as updateMailtoModeStore, setComposerFormat as updateComposerFormatStore, setNativeTitleBar as updateNativeTitleBarStore, setAlwaysLoadImages as updateAlwaysLoadImagesStore, setDarkMailContent as updateDarkMailContentStore, setAccentBarUnread as updateAccentBarUnreadStore, setShowMessageListCircles as updateShowMessageListCirclesStore, setShowViewerCircles as updateShowViewerCirclesStore, setGroupMessagesByDate as updateGroupMessagesByDateStore, type MessageListDensity, type ThreadMessagesSortOrder, type ThemeMode, type ComposerMode, type ComposerFormat } from '$lib/stores/settings.svelte'
+  import { setMessageListDensity as updateDensityStore, setThreadMessagesSortOrder as updateThreadMessagesSortOrderStore, setThemeMode as updateThemeStore, setShowTitleBar as updateShowTitleBarStore, setRunBackground as updateRunBackgroundStore, setStartHidden as updateStartHiddenStore, setAutostart as updateAutostartStore, setLanguage as updateLanguageStore, setComposerMode as updateComposerModeStore, setMailtoMode as updateMailtoModeStore, setComposerFormat as updateComposerFormatStore, setNativeTitleBar as updateNativeTitleBarStore, setAlwaysLoadImages as updateAlwaysLoadImagesStore, setDarkMailContent as updateDarkMailContentStore, setDarkComposerBody as updateDarkComposerBodyStore, setAccentBarUnread as updateAccentBarUnreadStore, setShowMessageListCircles as updateShowMessageListCirclesStore, setShowViewerCircles as updateShowViewerCirclesStore, setGroupMessagesByDate as updateGroupMessagesByDateStore, type MessageListDensity, type ThreadMessagesSortOrder, type ThemeMode, type ComposerMode, type ComposerFormat } from '$lib/stores/settings.svelte'
   import { applyThemeFromMode } from '$lib/stores/theme.svelte'
   import { dialogGuardOpen, dialogGuardClose } from '$lib/stores/dialogGuard'
   import { _ } from '$lib/i18n'
@@ -17,6 +17,7 @@
   import ImagesTab from './ImagesTab.svelte'
   import AccountsTab from './AccountsTab.svelte'
   import ContactsTab from './ContactsTab.svelte'
+  import ExtensionsTab from './ExtensionsTab.svelte'
   import AboutTab from './AboutTab.svelte'
 
   interface Props {
@@ -48,6 +49,7 @@
   let nativeTitleBar = $state<boolean>(false)
   let alwaysLoadImages = $state<boolean>(false)
   let darkMailContent = $state<boolean>(false)
+  let darkComposerBody = $state<boolean>(false)
   let accentBarUnread = $state<boolean>(false)
   let showMessageListCircles = $state<boolean>(true)
   let showViewerCircles = $state<boolean>(true)
@@ -96,7 +98,7 @@
     loading = true
     hasSaved = false
     try {
-      const [policy, delayMs, density, threadSortOrder, theme, titleBar, runBg, startHid, autoSt, lang, comp, mail, compFmt, nativeTB, alwaysImages, darkMail, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
+      const [policy, delayMs, density, threadSortOrder, theme, titleBar, runBg, startHid, autoSt, lang, comp, mail, compFmt, nativeTB, alwaysImages, darkMail, darkComposer, accentBar, listCircles, viewerCircles, groupByDate] = await Promise.all([
         GetReadReceiptResponsePolicy(),
         GetMarkAsReadDelay(),
         GetMessageListDensity(),
@@ -113,6 +115,7 @@
         GetNativeTitleBar(),
         GetAlwaysLoadImages(),
         GetDarkMailContent(),
+        GetDarkComposerBody(),
         GetAccentBarUnread(),
         GetShowMessageListCircles(),
         GetShowViewerCircles(),
@@ -136,6 +139,7 @@
       nativeTitleBar = nativeTB ?? false
       alwaysLoadImages = alwaysImages ?? false
       darkMailContent = darkMail ?? false
+      darkComposerBody = darkComposer ?? false
       accentBarUnread = accentBar ?? false
       showMessageListCircles = listCircles ?? true
       showViewerCircles = viewerCircles ?? true
@@ -173,6 +177,7 @@
       await SetNativeTitleBar(nativeTitleBar)
       await SetAlwaysLoadImages(alwaysLoadImages)
       await SetDarkMailContent(darkMailContent)
+      await SetDarkComposerBody(darkComposerBody)
       await SetAccentBarUnread(accentBarUnread)
       await SetShowMessageListCircles(showMessageListCircles)
       await SetShowViewerCircles(showViewerCircles)
@@ -194,6 +199,7 @@
       updateNativeTitleBarStore(nativeTitleBar)
       updateAlwaysLoadImagesStore(alwaysLoadImages)
       updateDarkMailContentStore(darkMailContent)
+      updateDarkComposerBodyStore(darkComposerBody)
       updateAccentBarUnreadStore(accentBarUnread)
       updateShowMessageListCirclesStore(showMessageListCircles)
       updateShowViewerCirclesStore(showViewerCircles)
@@ -245,7 +251,8 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
-  <Dialog.Content class="max-w-2xl" preventCloseAutoFocus onInteractOutside={(e) => e.preventDefault()}>
+  <Dialog.Content class="max-w-3xl" preventCloseAutoFocus onInteractOutside={(e) => e.preventDefault()}>
+
     <Dialog.Header>
       <Dialog.Title>{$_('settings.title')}</Dialog.Title>
       <Dialog.Description>
@@ -259,7 +266,7 @@
       </div>
     {:else}
       <Tabs.Root bind:value={activeTab} class="w-full">
-        <Tabs.List class="grid w-full grid-cols-6">
+        <Tabs.List class="grid w-full grid-cols-7">
           <Tabs.Trigger value="general" class="flex items-center gap-2">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:settings-2" width="16" height="16" /></span>
             {$_('settings.general')}
@@ -280,13 +287,17 @@
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:contact" width="16" height="16" /></span>
             {$_('settings.contacts')}
           </Tabs.Trigger>
+          <Tabs.Trigger value="extensions" class="flex items-center gap-2">
+            <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:puzzle" width="16" height="16" /></span>
+            {$_('settings.extensions')}
+          </Tabs.Trigger>
           <Tabs.Trigger value="about" class="flex items-center gap-2">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:info" width="16" height="16" /></span>
             {$_('settings.about')}
           </Tabs.Trigger>
         </Tabs.List>
 
-        <div class="mt-4 h-[350px] overflow-y-auto">
+        <div class="mt-4 h-[350px] overflow-y-auto pl-1 pr-3">
           <Tabs.Content value="general" class="mt-0">
             <GeneralTab
               bind:markAsReadDelaySeconds
@@ -313,6 +324,7 @@
               bind:showViewerCircles
               bind:groupMessagesByDate
               bind:darkMailContent
+              bind:darkComposerBody
             />
           </Tabs.Content>
 
@@ -342,6 +354,10 @@
 
           <Tabs.Content value="contacts" class="mt-0">
             <ContactsTab />
+          </Tabs.Content>
+
+          <Tabs.Content value="extensions" class="mt-0">
+            <ExtensionsTab />
           </Tabs.Content>
 
           <Tabs.Content value="about" class="mt-0">

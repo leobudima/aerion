@@ -38,6 +38,138 @@ export function BroadcastThemeChange(arg1) {
   return window['go']['app']['App']['BroadcastThemeChange'](arg1);
 }
 
+export function Calendar_AddCalDAVSource(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['app']['App']['Calendar_AddCalDAVSource'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function Calendar_AddGoogleSource(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['Calendar_AddGoogleSource'](arg1, arg2, arg3, arg4);
+}
+
+export function Calendar_AddLocalCalendar(arg1, arg2, arg3) {
+  return window['go']['app']['App']['Calendar_AddLocalCalendar'](arg1, arg2, arg3);
+}
+
+export function Calendar_AddLocalSource(arg1) {
+  return window['go']['app']['App']['Calendar_AddLocalSource'](arg1);
+}
+
+export function Calendar_AddMicrosoftSource(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['Calendar_AddMicrosoftSource'](arg1, arg2, arg3, arg4);
+}
+
+export function Calendar_CreateEvent(arg1) {
+  return window['go']['app']['App']['Calendar_CreateEvent'](arg1);
+}
+
+export function Calendar_DeleteCalendar(arg1) {
+  return window['go']['app']['App']['Calendar_DeleteCalendar'](arg1);
+}
+
+export function Calendar_DeleteEvent(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_DeleteEvent'](arg1, arg2);
+}
+
+export function Calendar_DeleteSource(arg1) {
+  return window['go']['app']['App']['Calendar_DeleteSource'](arg1);
+}
+
+export function Calendar_DismissAlarm(arg1) {
+  return window['go']['app']['App']['Calendar_DismissAlarm'](arg1);
+}
+
+export function Calendar_ForceSyncSource(arg1) {
+  return window['go']['app']['App']['Calendar_ForceSyncSource'](arg1);
+}
+
+export function Calendar_GetEvent(arg1) {
+  return window['go']['app']['App']['Calendar_GetEvent'](arg1);
+}
+
+export function Calendar_GrantCalendarAccess(arg1, arg2, arg3) {
+  return window['go']['app']['App']['Calendar_GrantCalendarAccess'](arg1, arg2, arg3);
+}
+
+export function Calendar_ListCalendars(arg1) {
+  return window['go']['app']['App']['Calendar_ListCalendars'](arg1);
+}
+
+export function Calendar_ListEventsInRange(arg1, arg2, arg3) {
+  return window['go']['app']['App']['Calendar_ListEventsInRange'](arg1, arg2, arg3);
+}
+
+export function Calendar_ListGoogleCalendarsForAccount(arg1) {
+  return window['go']['app']['App']['Calendar_ListGoogleCalendarsForAccount'](arg1);
+}
+
+export function Calendar_ListMicrosoftCalendarsForAccount(arg1) {
+  return window['go']['app']['App']['Calendar_ListMicrosoftCalendarsForAccount'](arg1);
+}
+
+export function Calendar_ListSources() {
+  return window['go']['app']['App']['Calendar_ListSources']();
+}
+
+export function Calendar_LogFrontend(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_LogFrontend'](arg1, arg2);
+}
+
+export function Calendar_OpenURL(arg1) {
+  return window['go']['app']['App']['Calendar_OpenURL'](arg1);
+}
+
+export function Calendar_QueryFreeBusy(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['Calendar_QueryFreeBusy'](arg1, arg2, arg3, arg4);
+}
+
+export function Calendar_RenameSource(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_RenameSource'](arg1, arg2);
+}
+
+export function Calendar_ReprobeCalDAVOrganizerIdentities(arg1) {
+  return window['go']['app']['App']['Calendar_ReprobeCalDAVOrganizerIdentities'](arg1);
+}
+
+export function Calendar_SearchContacts(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_SearchContacts'](arg1, arg2);
+}
+
+export function Calendar_SetCalendarColor(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_SetCalendarColor'](arg1, arg2);
+}
+
+export function Calendar_SetCalendarVisible(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_SetCalendarVisible'](arg1, arg2);
+}
+
+export function Calendar_SetDisplayTimezone(arg1) {
+  return window['go']['app']['App']['Calendar_SetDisplayTimezone'](arg1);
+}
+
+export function Calendar_SetOrganizerIdentity(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_SetOrganizerIdentity'](arg1, arg2);
+}
+
+export function Calendar_SetSyncInterval(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_SetSyncInterval'](arg1, arg2);
+}
+
+export function Calendar_SyncAllSources() {
+  return window['go']['app']['App']['Calendar_SyncAllSources']();
+}
+
+export function Calendar_SyncSource(arg1) {
+  return window['go']['app']['App']['Calendar_SyncSource'](arg1);
+}
+
+export function Calendar_UpdateEvent(arg1, arg2) {
+  return window['go']['app']['App']['Calendar_UpdateEvent'](arg1, arg2);
+}
+
+export function Calendar_UpdateMyAttendeeStatus(arg1, arg2, arg3) {
+  return window['go']['app']['App']['Calendar_UpdateMyAttendeeStatus'](arg1, arg2, arg3);
+}
+
 export function CanUndo() {
   return window['go']['app']['App']['CanUndo']();
 }
@@ -70,8 +202,8 @@ export function CheckRecipientPGPKeys(arg1) {
   return window['go']['app']['App']['CheckRecipientPGPKeys'](arg1);
 }
 
-export function ClearContactSourceError(arg1) {
-  return window['go']['app']['App']['ClearContactSourceError'](arg1);
+export function ClearOAuthCreds(arg1) {
+  return window['go']['app']['App']['ClearOAuthCreds'](arg1);
 }
 
 export function CloseWindow() {
@@ -82,8 +214,60 @@ export function CompleteContactSourceOAuthSetup(arg1, arg2) {
   return window['go']['app']['App']['CompleteContactSourceOAuthSetup'](arg1, arg2);
 }
 
+export function CompleteCustomOAuthAccountSetup(arg1) {
+  return window['go']['app']['App']['CompleteCustomOAuthAccountSetup'](arg1);
+}
+
 export function CompleteOAuthAccountSetup(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['app']['App']['CompleteOAuthAccountSetup'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function Contacts_CreateContact(arg1) {
+  return window['go']['app']['App']['Contacts_CreateContact'](arg1);
+}
+
+export function Contacts_DeleteLocalContact(arg1) {
+  return window['go']['app']['App']['Contacts_DeleteLocalContact'](arg1);
+}
+
+export function Contacts_EnableWriteAccess(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['Contacts_EnableWriteAccess'](arg1, arg2, arg3, arg4);
+}
+
+export function Contacts_GetContactDetail(arg1) {
+  return window['go']['app']['App']['Contacts_GetContactDetail'](arg1);
+}
+
+export function Contacts_LinkAccountSource(arg1, arg2, arg3) {
+  return window['go']['app']['App']['Contacts_LinkAccountSource'](arg1, arg2, arg3);
+}
+
+export function Contacts_ListAddressbooks(arg1) {
+  return window['go']['app']['App']['Contacts_ListAddressbooks'](arg1);
+}
+
+export function Contacts_ListContactsForBrowse(arg1, arg2, arg3, arg4) {
+  return window['go']['app']['App']['Contacts_ListContactsForBrowse'](arg1, arg2, arg3, arg4);
+}
+
+export function Contacts_ListSources() {
+  return window['go']['app']['App']['Contacts_ListSources']();
+}
+
+export function Contacts_ResizeContactPhoto(arg1) {
+  return window['go']['app']['App']['Contacts_ResizeContactPhoto'](arg1);
+}
+
+export function Contacts_SyncAllSources() {
+  return window['go']['app']['App']['Contacts_SyncAllSources']();
+}
+
+export function Contacts_SyncSource(arg1) {
+  return window['go']['app']['App']['Contacts_SyncSource'](arg1);
+}
+
+export function Contacts_UpdateContact(arg1, arg2) {
+  return window['go']['app']['App']['Contacts_UpdateContact'](arg1, arg2);
 }
 
 export function CopyToFolder(arg1, arg2) {
@@ -138,6 +322,14 @@ export function DiscoverCardDAVAddressbooks(arg1, arg2, arg3) {
   return window['go']['app']['App']['DiscoverCardDAVAddressbooks'](arg1, arg2, arg3);
 }
 
+export function DiscoverCardDAVAddressbooksOAuth(arg1, arg2) {
+  return window['go']['app']['App']['DiscoverCardDAVAddressbooksOAuth'](arg1, arg2);
+}
+
+export function DiscoverOAuthProvider(arg1) {
+  return window['go']['app']['App']['DiscoverOAuthProvider'](arg1);
+}
+
 export function DownloadAttachment(arg1, arg2) {
   return window['go']['app']['App']['DownloadAttachment'](arg1, arg2);
 }
@@ -160,6 +352,10 @@ export function FetchServerMessage(arg1, arg2, arg3) {
 
 export function FindLocalMessageIDs(arg1, arg2, arg3) {
   return window['go']['app']['App']['FindLocalMessageIDs'](arg1, arg2, arg3);
+}
+
+export function ForceSyncContactSource(arg1) {
+  return window['go']['app']['App']['ForceSyncContactSource'](arg1);
 }
 
 export function ForceSyncFolder(arg1, arg2) {
@@ -262,6 +458,14 @@ export function GetConversations(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['app']['App']['GetConversations'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+export function GetCustomOAuthAccounts() {
+  return window['go']['app']['App']['GetCustomOAuthAccounts']();
+}
+
+export function GetDarkComposerBody() {
+  return window['go']['app']['App']['GetDarkComposerBody']();
+}
+
 export function GetDarkMailContent() {
   return window['go']['app']['App']['GetDarkMailContent']();
 }
@@ -318,6 +522,10 @@ export function GetLanguage() {
   return window['go']['app']['App']['GetLanguage']();
 }
 
+export function GetLastSeenVersion() {
+  return window['go']['app']['App']['GetLastSeenVersion']();
+}
+
 export function GetLinkedAccountsForContactSync() {
   return window['go']['app']['App']['GetLinkedAccountsForContactSync']();
 }
@@ -362,8 +570,24 @@ export function GetNativeTitleBar() {
   return window['go']['app']['App']['GetNativeTitleBar']();
 }
 
+export function GetOAuthBuildStatus() {
+  return window['go']['app']['App']['GetOAuthBuildStatus']();
+}
+
+export function GetOAuthCredsChoices(arg1, arg2) {
+  return window['go']['app']['App']['GetOAuthCredsChoices'](arg1, arg2);
+}
+
+export function GetOAuthCredsStatus(arg1) {
+  return window['go']['app']['App']['GetOAuthCredsStatus'](arg1);
+}
+
 export function GetOAuthStatus(arg1) {
   return window['go']['app']['App']['GetOAuthStatus'](arg1);
+}
+
+export function GetOAuthWarningDisabled() {
+  return window['go']['app']['App']['GetOAuthWarningDisabled']();
 }
 
 export function GetPGPEncryptPolicy(arg1) {
@@ -522,6 +746,10 @@ export function InitiateShutdown() {
   return window['go']['app']['App']['InitiateShutdown']();
 }
 
+export function IsExtensionEnabled(arg1) {
+  return window['go']['app']['App']['IsExtensionEnabled'](arg1);
+}
+
 export function IsFTSIndexComplete(arg1) {
   return window['go']['app']['App']['IsFTSIndexComplete'](arg1);
 }
@@ -542,8 +770,20 @@ export function IsOAuthConfigured(arg1) {
   return window['go']['app']['App']['IsOAuthConfigured'](arg1);
 }
 
+export function IsReady() {
+  return window['go']['app']['App']['IsReady']();
+}
+
 export function LinkAccountContactSource(arg1, arg2, arg3) {
   return window['go']['app']['App']['LinkAccountContactSource'](arg1, arg2, arg3);
+}
+
+export function ListAccountSetupHooksForProvider(arg1) {
+  return window['go']['app']['App']['ListAccountSetupHooksForProvider'](arg1);
+}
+
+export function ListAuthContextsForProvider(arg1) {
+  return window['go']['app']['App']['ListAuthContextsForProvider'](arg1);
 }
 
 export function ListContacts(arg1) {
@@ -552,6 +792,18 @@ export function ListContacts(arg1) {
 
 export function ListDrafts(arg1) {
   return window['go']['app']['App']['ListDrafts'](arg1);
+}
+
+export function ListEnabledExtensions() {
+  return window['go']['app']['App']['ListEnabledExtensions']();
+}
+
+export function ListExtensionRailTabs() {
+  return window['go']['app']['App']['ListExtensionRailTabs']();
+}
+
+export function ListExtensions() {
+  return window['go']['app']['App']['ListExtensions']();
 }
 
 export function ListPGPKeys(arg1) {
@@ -570,8 +822,8 @@ export function ListSenderCerts() {
   return window['go']['app']['App']['ListSenderCerts']();
 }
 
-export function ListUpcomingCalendarEvents(arg1, arg2) {
-  return window['go']['app']['App']['ListUpcomingCalendarEvents'](arg1, arg2);
+export function LogFrontend(arg1, arg2) {
+  return window['go']['app']['App']['LogFrontend'](arg1, arg2);
 }
 
 export function LookupHKP(arg1) {
@@ -670,6 +922,10 @@ export function PickSMIMECertificateFile() {
   return window['go']['app']['App']['PickSMIMECertificateFile']();
 }
 
+export function Preflight() {
+  return window['go']['app']['App']['Preflight']();
+}
+
 export function PrepareReply(arg1, arg2) {
   return window['go']['app']['App']['PrepareReply'](arg1, arg2);
 }
@@ -750,10 +1006,6 @@ export function SaveMainWindowState() {
   return window['go']['app']['App']['SaveMainWindowState']();
 }
 
-export function SaveOAuthTokens(arg1, arg2, arg3, arg4, arg5) {
-  return window['go']['app']['App']['SaveOAuthTokens'](arg1, arg2, arg3, arg4, arg5);
-}
-
 export function SavePendingOAuthTokens(arg1) {
   return window['go']['app']['App']['SavePendingOAuthTokens'](arg1);
 }
@@ -810,6 +1062,14 @@ export function SetComposerMode(arg1) {
   return window['go']['app']['App']['SetComposerMode'](arg1);
 }
 
+export function SetContactSourceWritable(arg1, arg2) {
+  return window['go']['app']['App']['SetContactSourceWritable'](arg1, arg2);
+}
+
+export function SetDarkComposerBody(arg1) {
+  return window['go']['app']['App']['SetDarkComposerBody'](arg1);
+}
+
 export function SetDarkMailContent(arg1) {
   return window['go']['app']['App']['SetDarkMailContent'](arg1);
 }
@@ -826,12 +1086,20 @@ export function SetDefaultSMIMECertificate(arg1, arg2) {
   return window['go']['app']['App']['SetDefaultSMIMECertificate'](arg1, arg2);
 }
 
+export function SetExtensionEnabled(arg1, arg2) {
+  return window['go']['app']['App']['SetExtensionEnabled'](arg1, arg2);
+}
+
 export function SetGroupMessagesByDate(arg1) {
   return window['go']['app']['App']['SetGroupMessagesByDate'](arg1);
 }
 
 export function SetLanguage(arg1) {
   return window['go']['app']['App']['SetLanguage'](arg1);
+}
+
+export function SetLastSeenVersion(arg1) {
+  return window['go']['app']['App']['SetLastSeenVersion'](arg1);
 }
 
 export function SetMailtoMode(arg1) {
@@ -852,6 +1120,18 @@ export function SetMessageListSortOrder(arg1) {
 
 export function SetNativeTitleBar(arg1) {
   return window['go']['app']['App']['SetNativeTitleBar'](arg1);
+}
+
+export function SetOAuthCreds(arg1, arg2, arg3) {
+  return window['go']['app']['App']['SetOAuthCreds'](arg1, arg2, arg3);
+}
+
+export function SetOAuthCredsChoice(arg1, arg2) {
+  return window['go']['app']['App']['SetOAuthCredsChoice'](arg1, arg2);
+}
+
+export function SetOAuthWarningDisabled(arg1) {
+  return window['go']['app']['App']['SetOAuthWarningDisabled'](arg1);
 }
 
 export function SetPGPEncryptPolicy(arg1, arg2) {
@@ -916,6 +1196,10 @@ export function Star(arg1) {
 
 export function StartContactsOnlyOAuthFlow(arg1) {
   return window['go']['app']['App']['StartContactsOnlyOAuthFlow'](arg1);
+}
+
+export function StartCustomOAuthFlow(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['app']['App']['StartCustomOAuthFlow'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 export function StartOAuthFlow(arg1) {

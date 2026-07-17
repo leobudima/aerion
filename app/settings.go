@@ -15,6 +15,21 @@ import (
 // Settings API - Exposed to frontend via Wails bindings
 // ============================================================================
 
+// IsExtensionEnabled returns whether the named first-party extension is
+// enabled. Unknown extensions return (false, nil). Used by the frontend to
+// gate UI affordances (rail tab, settings tab) without throwing on
+// not-yet-defined extensions.
+func (a *App) IsExtensionEnabled(name string) (bool, error) {
+	return a.settingsStore.IsExtensionEnabled(name)
+}
+
+// SetExtensionEnabled toggles a first-party extension on or off. Phase 1
+// only writes the setting flag; Phase 2 hooks this to start/stop the
+// extension's background services and emit a UI refresh event.
+func (a *App) SetExtensionEnabled(name string, enabled bool) error {
+	return a.settingsStore.SetExtensionEnabled(name, enabled)
+}
+
 // GetReadReceiptResponsePolicy returns the current read receipt response policy
 // Values: "never", "ask", "always"
 func (a *App) GetReadReceiptResponsePolicy() (string, error) {
@@ -146,6 +161,32 @@ func (a *App) GetTermsAccepted() (bool, error) {
 // SetTermsAccepted sets whether the user has accepted the terms of service
 func (a *App) SetTermsAccepted(accepted bool) error {
 	return a.settingsStore.SetTermsAccepted(accepted)
+}
+
+// GetLastSeenVersion returns the Aerion version last acknowledged by the user
+// in the "What's new in this version" launch dialog. Empty = never acknowledged.
+func (a *App) GetLastSeenVersion() (string, error) {
+	return a.settingsStore.GetLastSeenVersion()
+}
+
+// SetLastSeenVersion records the current version as acknowledged. The
+// frontend calls this from the dialog's OK click handler only — not on
+// ESC / outside-click — so a user who dismisses without acknowledging
+// sees the dialog again next launch.
+func (a *App) SetLastSeenVersion(version string) error {
+	return a.settingsStore.SetLastSeenVersion(version)
+}
+
+// GetOAuthWarningDisabled reports whether the user has opted out of the
+// missing-OAuth-creds launch warning via "Don't show again".
+func (a *App) GetOAuthWarningDisabled() (bool, error) {
+	return a.settingsStore.GetOAuthWarningDisabled()
+}
+
+// SetOAuthWarningDisabled persists the user's "Don't show again" choice
+// from the OAuth-credentials-missing launch warning.
+func (a *App) SetOAuthWarningDisabled(disabled bool) error {
+	return a.settingsStore.SetOAuthWarningDisabled(disabled)
 }
 
 // GetRunBackground returns whether Aerion keeps running when the window is closed
@@ -292,6 +333,17 @@ func (a *App) SetDarkMailContent(enabled bool) error {
 	return a.settingsStore.SetDarkMailContent(enabled)
 }
 
+// GetDarkComposerBody returns whether the composer message body should use a
+// dark background while Aerion is in dark mode.
+func (a *App) GetDarkComposerBody() (bool, error) {
+	return a.settingsStore.GetDarkComposerBody()
+}
+
+// SetDarkComposerBody persists the dark-composer-body toggle.
+func (a *App) SetDarkComposerBody(enabled bool) error {
+	return a.settingsStore.SetDarkComposerBody(enabled)
+}
+
 // AddImageAllowlist adds a domain or sender to the image allowlist
 // entryType: "domain" or "sender"
 // value: the domain (e.g., "company.com") or email (e.g., "newsletter@company.com")
@@ -407,11 +459,16 @@ func (a *App) SendReadReceipt(accountID, messageID string) error {
 	}
 	defer client.Close()
 
+	if err := client.Login(); err != nil {
+		return fmt.Errorf("failed to authenticate to SMTP: %w", err)
+	}
+
 	// Extract recipient email
 	recipientEmail := extractEmailFromHeader(msg.ReadReceiptTo)
 
 	// Send the MDN
 	if err := client.SendMail(fromEmail, []string{recipientEmail}, mdnBytes); err != nil {
+		log.Error().Err(err).Str("from", fromEmail).Str("to", recipientEmail).Msg("Failed to send read receipt MDN")
 		return fmt.Errorf("failed to send read receipt: %w", err)
 	}
 

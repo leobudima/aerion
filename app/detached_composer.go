@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/hkdb/aerion/internal/account"
-	"github.com/hkdb/aerion/internal/carddav"
 	"github.com/hkdb/aerion/internal/certificate"
 	"github.com/hkdb/aerion/internal/contact"
 	"github.com/hkdb/aerion/internal/credentials"
 	"github.com/hkdb/aerion/internal/database"
 	"github.com/hkdb/aerion/internal/draft"
+	"github.com/hkdb/aerion/internal/email"
 	"github.com/hkdb/aerion/internal/folder"
 	"github.com/hkdb/aerion/internal/imap"
 	"github.com/hkdb/aerion/internal/ipc"
@@ -168,23 +168,9 @@ func (c *ComposerApp) Startup(ctx context.Context) {
 		}
 	}()
 
-	// Initialize CardDAV search for contact autocomplete (reads from shared DB)
-	carddavStore := carddav.NewStore(db.DB)
-	c.contactStore.SetCardDAVSearchFunc(func(query string, limit int) ([]*contact.Contact, error) {
-		contacts, err := carddavStore.SearchContacts(query, limit)
-		if err != nil {
-			return nil, err
-		}
-		result := make([]*contact.Contact, len(contacts))
-		for i, cdContact := range contacts {
-			result[i] = &contact.Contact{
-				Email:       cdContact.Email,
-				DisplayName: cdContact.DisplayName,
-				Source:      "carddav",
-			}
-		}
-		return result, nil
-	})
+	// Removed in 2b.2.a: contactStore.Search now natively walks both local and
+	// carddav contacts via the unified contact_records schema. The carddav
+	// store and search-bridge wiring is no longer needed here.
 
 	c.draftStore = draft.NewStore(db)
 	c.settingsStore = settings.NewStore(db)
@@ -486,11 +472,6 @@ func (c *ComposerApp) getIMAPCredentials(accountID string) (*imap.ClientConfig, 
 	return c.composeOps.getIMAPCredentials(c.ctx, accountID)
 }
 
-// getValidOAuthToken returns a valid OAuth token, refreshing if needed.
-func (c *ComposerApp) getValidOAuthToken(accountID string) (*credentials.OAuthTokens, error) {
-	return c.composeOps.getValidOAuthToken(c.ctx, accountID)
-}
-
 // ============================================================================
 // Wails-bound methods (exposed to frontend)
 // ============================================================================
@@ -552,6 +533,13 @@ func (c *ComposerApp) GetNativeTitleBar() (bool, error) {
 // GetThemeMode returns the current theme mode setting.
 func (c *ComposerApp) GetThemeMode() (string, error) {
 	return c.settingsStore.GetThemeMode()
+}
+
+// GetDarkComposerBody returns whether the composer message body should use a
+// dark background while in dark mode (the detached composer reads it so it opens
+// with the surface matching the user's choice).
+func (c *ComposerApp) GetDarkComposerBody() (bool, error) {
+	return c.settingsStore.GetDarkComposerBody()
 }
 
 // GetSystemTheme returns the current system theme preference detected via
@@ -693,28 +681,19 @@ func (c *ComposerApp) SendMessage(accountID string, msg smtp.ComposeMessage) err
 	return nil
 }
 
-// saveToSentFolder appends the sent message to the Sent folder via IMAP.
-func (c *ComposerApp) saveToSentFolder(accountID string, acc *account.Account, rawMsg []byte) error {
-	return c.composeOps.saveToSentFolder(c.ctx, accountID, acc, rawMsg)
-}
-
-// cancelDraftSync cancels any in-flight syncDraftToIMAP goroutine and waits for
-// it to finish. This prevents the race where DeleteDraft runs while a background
-// goroutine is still uploading the draft to IMAP.
+// cancelDraftSync signals any in-flight syncDraftToIMAP goroutine to abort and
+// returns immediately. The goroutine self-cleans via the post-APPEND guard in
+// syncToIMAP if it had already committed an APPEND to the server, so the caller
+// (DeleteDraft / next SaveDraft) doesn't need to block on the goroutine exiting.
 func (c *ComposerApp) cancelDraftSync() {
 	c.draftSyncMu.Lock()
 	cancel := c.draftSyncCancel
-	done := c.draftSyncDone
 	c.draftSyncMu.Unlock()
 
 	if cancel == nil {
 		return
 	}
 	cancel()
-	if done == nil {
-		return
-	}
-	<-done
 }
 
 // SaveDraft saves the current compose state as a draft.
@@ -898,18 +877,10 @@ func (c *ComposerApp) draftToComposeMessage(d *draft.Draft) *smtp.ComposeMessage
 // buildReplyMessage builds a compose message for reply/forward.
 // This is a simplified version of the logic in app.go PrepareReply.
 func (c *ComposerApp) buildReplyMessage(msg *message.Message, mode string) *smtp.ComposeMessage {
-	// Get default identity
+	// Prefer the identity the original message was addressed to (#325), then the
+	// default identity, then the first.
 	identities, _ := c.accountStore.GetIdentities(c.config.AccountID)
-	var fromIdentity *account.Identity
-	for _, id := range identities {
-		if id.IsDefault {
-			fromIdentity = id
-			break
-		}
-	}
-	if fromIdentity == nil && len(identities) > 0 {
-		fromIdentity = identities[0]
-	}
+	fromIdentity := selectReplyFromIdentity(identities, msg)
 
 	from := smtp.Address{}
 	if fromIdentity != nil {
@@ -968,16 +939,24 @@ func (c *ComposerApp) buildReplyMessage(msg *message.Message, mode string) *smtp
 		sender = msg.FromName + " <" + msg.FromEmail + ">"
 	}
 
+	// Plaintext quote source: prefer the original's text part, but fall back to
+	// deriving it from HTML so HTML-only originals still produce a real quote
+	// (msg.BodyText is empty for HTML-only mail).
+	quotedText := msg.BodyText
+	if strings.TrimSpace(quotedText) == "" && msg.BodyHTML != "" {
+		quotedText = email.ExtractPlainTextFromHTML(msg.BodyHTML)
+	}
+
 	var htmlBody, textBody string
 	if mode == "forward" {
 		htmlBody = fmt.Sprintf("<br><br>---------- Forwarded message ----------<br>From: %s<br>Subject: %s<br>Date: %s<br>To: %s<br><br>%s",
 			escapeHTML(sender), escapeHTML(msg.Subject), escapeHTML(dateStr), escapeHTML(msg.ToList), msg.BodyHTML)
 		textBody = fmt.Sprintf("\n\n---------- Forwarded message ----------\nFrom: %s\nSubject: %s\nDate: %s\nTo: %s\n\n%s",
-			sender, msg.Subject, dateStr, msg.ToList, msg.BodyText)
+			sender, msg.Subject, dateStr, msg.ToList, quotedText)
 	} else {
 		citation := fmt.Sprintf("On %s, %s wrote:", dateStr, sender)
 		htmlBody = fmt.Sprintf("<br><br>%s<br><blockquote type=\"cite\">%s</blockquote>", escapeHTML(citation), msg.BodyHTML)
-		textBody = fmt.Sprintf("\n\n%s\n%s", citation, quoteText(msg.BodyText))
+		textBody = fmt.Sprintf("\n\n%s\n%s", citation, quoteText(quotedText))
 	}
 
 	return &smtp.ComposeMessage{
@@ -1204,32 +1183,6 @@ func (c *ComposerApp) getHKPServers() []string {
 		urls[i] = s.URL
 	}
 	return urls
-}
-
-// shouldPGPSignMessage determines whether a message should be PGP signed.
-func (c *ComposerApp) shouldPGPSignMessage(perMessageOverride bool) bool {
-	return c.composeOps.shouldPGPSignMessage(c.config.AccountID, perMessageOverride)
-}
-
-// shouldPGPEncryptMessage determines whether a message should be PGP encrypted.
-func (c *ComposerApp) shouldPGPEncryptMessage(perMessageOverride bool) bool {
-	return c.composeOps.shouldPGPEncryptMessage(c.config.AccountID, perMessageOverride)
-}
-
-// shouldSignMessage determines whether a message should be S/MIME signed.
-func (c *ComposerApp) shouldSignMessage(perMessageOverride bool) bool {
-	return c.composeOps.shouldSignMessage(c.config.AccountID, perMessageOverride)
-}
-
-// shouldEncryptMessage determines whether a message should be S/MIME encrypted.
-func (c *ComposerApp) shouldEncryptMessage(perMessageOverride bool) bool {
-	return c.composeOps.shouldEncryptMessage(c.config.AccountID, perMessageOverride)
-}
-
-// getDraftIdentityEmail returns the email address for the draft's identity.
-// Falls back to the account email if the identity cannot be resolved.
-func (c *ComposerApp) getDraftIdentityEmail(d *draft.Draft) string {
-	return c.draftOps.getIdentityEmail(d)
 }
 
 // parseIntID parses a string ID to int64.

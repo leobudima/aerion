@@ -110,6 +110,14 @@ func runMainMode(mailtoData *app.MailtoData, rawMailtoArg string) {
 		application.PendingMailto = mailtoData
 	}
 
+	// Run pre-Wails startup checks (paths, DB open, migrations, credential
+	// store). On failure, surface a native error dialog and exit before the
+	// Wails window is created — otherwise the user would see a half-rendered
+	// app window briefly flash before the dialog appears.
+	//
+	// Skipped under the `bindings` build tag — see preflight_bindings.go.
+	runPreflight(application)
+
 	// Create a dummy ComposerApp for binding generation only.
 	// Wails generates JS/TS bindings at build time based on bound structs.
 	// We need ComposerApp bindings for the detached composer window.
@@ -138,7 +146,7 @@ func runMainMode(mailtoData *app.MailtoData, rawMailtoArg string) {
 		},
 		Linux: &linux.Options{
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
-			ProgramName:      "Aerion",
+			ProgramName:      "io.github.hkdb.Aerion",
 		},
 	})
 
@@ -227,7 +235,7 @@ func runComposerMode() {
 		},
 		Linux: &linux.Options{
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
-			ProgramName:      "Aerion Composer",
+			ProgramName:      "io.github.hkdb.Aerion",
 		},
 	})
 

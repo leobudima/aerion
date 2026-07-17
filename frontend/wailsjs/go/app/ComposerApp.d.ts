@@ -24,6 +24,8 @@ export function GetAllAccountIdentities():Promise<Array<app.AccountIdentityGroup
 
 export function GetComposeMode():Promise<app.ComposeMode>;
 
+export function GetDarkComposerBody():Promise<boolean>;
+
 export function GetDraft():Promise<smtp.ComposeMessage>;
 
 export function GetIdentities(arg1:string):Promise<Array<account.Identity>>;
@@ -59,6 +61,8 @@ export function ImportRecipientCert(arg1:string,arg2:string):Promise<void>;
 export function ImportRecipientPGPKey(arg1:string,arg2:string):Promise<void>;
 
 export function IsFlatpak():Promise<boolean>;
+
+export function LogFrontend(arg1:string,arg2:string):Promise<void>;
 
 export function LookupHKP(arg1:string):Promise<string>;
 

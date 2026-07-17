@@ -8,6 +8,7 @@ import (
 	"github.com/hkdb/aerion/internal/account"
 	"github.com/hkdb/aerion/internal/carddav"
 	"github.com/hkdb/aerion/internal/credentials"
+	"github.com/hkdb/aerion/internal/kit/davutil"
 	"github.com/hkdb/aerion/internal/logging"
 	"github.com/hkdb/aerion/internal/oauth2"
 	"github.com/hkdb/aerion/internal/platform"
@@ -36,6 +37,19 @@ func (a *App) DiscoverCardDAVAddressbooks(url, username, password string) ([]car
 // TestCardDAVConnection tests connection to a CardDAV server
 func (a *App) TestCardDAVConnection(url, username, password string) error {
 	return carddav.TestConnection(url, username, password)
+}
+
+// DiscoverCardDAVAddressbooksOAuth discovers addressbooks from a CardDAV server using
+// a bearer token from an OAuth mail account (unified-grant path — a custom OIDC account
+// whose token also authorizes CardDAV, e.g. Stalwart). The account token getter is
+// already custom-OAuth-aware and refreshing; discovery doubles as the connection test.
+func (a *App) DiscoverCardDAVAddressbooksOAuth(url, accountID string) ([]carddav.AddressbookInfo, error) {
+	tokens, err := a.getValidOAuthToken(accountID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get OAuth token: %w", err)
+	}
+	httpClient := davutil.NewBearerHTTPClient(tokens.AccessToken, 30*time.Second)
+	return carddav.DiscoverAddressbooksWithHTTPClient(url, httpClient)
 }
 
 // GetContactSources returns all configured contact sources
@@ -104,18 +118,58 @@ func (a *App) UpdateContactSource(id string, config carddav.SourceConfig) error 
 		}
 	}
 
-	// Update addressbooks if provided
+	// Differential addressbook update: only delete addressbooks whose paths
+	// are no longer in EnabledAddressbooks; only create addressbooks for
+	// paths not already present. Existing addressbooks keep their UUID,
+	// sync_token, last_synced_at, and all the carddav_record_state rows
+	// pointing at them — so a writable-toggle save or a name-only edit
+	// becomes a no-op on the addressbook side.
+	//
+	// The previous behavior tore down ALL addressbooks on every call and
+	// re-created them with new UUIDs. carddav_record_state.addressbook_id
+	// has no FK cascade, so every record row was orphaned (UI went empty;
+	// the next full sync rebuilt the cache from scratch and left the old
+	// rows as dead bloat).
 	if len(config.EnabledAddressbooks) > 0 {
-		// Delete existing addressbooks
-		a.carddavStore.DeleteAddressbooksForSource(id)
+		existing, listErr := a.carddavStore.ListAddressbooks(id)
+		if listErr != nil {
+			return fmt.Errorf("failed to list current addressbooks: %w", listErr)
+		}
 
-		// Create new ones
+		existingByPath := make(map[string]*carddav.Addressbook, len(existing))
+		for _, ab := range existing {
+			existingByPath[ab.Path] = ab
+		}
+		incomingByPath := make(map[string]bool, len(config.EnabledAddressbooks))
 		for _, path := range config.EnabledAddressbooks {
+			incomingByPath[path] = true
+		}
+
+		// Delete addressbooks the user removed from their selection. Uses
+		// DeleteAddressbookByID (tx-wrapped) so the carddav_record_state
+		// rows + contact_records under that addressbook are cleaned up.
+		for path, ab := range existingByPath {
+			if incomingByPath[path] {
+				continue
+			}
+			if err := a.carddavStore.DeleteAddressbookByID(ab.ID); err != nil {
+				log.Warn().Err(err).Str("path", path).Msg("Failed to delete removed addressbook")
+			}
+		}
+
+		// Create addressbooks for paths the user newly enabled. Existing
+		// paths are skipped — preserving their UUID and downstream cache.
+		for _, path := range config.EnabledAddressbooks {
+			if _, exists := existingByPath[path]; exists {
+				continue
+			}
 			name := path
 			if parts := strings.Split(strings.Trim(path, "/"), "/"); len(parts) > 0 {
 				name = parts[len(parts)-1]
 			}
-			a.carddavStore.CreateAddressbook(id, path, name, true)
+			if _, err := a.carddavStore.CreateAddressbook(id, path, name, true); err != nil {
+				log.Warn().Err(err).Str("path", path).Msg("Failed to create new addressbook")
+			}
 		}
 	}
 
@@ -165,6 +219,16 @@ func (a *App) SetAddressbookEnabled(addressbookID string, enabled bool) error {
 	return a.carddavStore.SetAddressbookEnabled(addressbookID, enabled)
 }
 
+// SetContactSourceWritable flips the writable flag for a CardDAV source.
+// Phase 2b.2.a UI surface — backs the "Enable write access" checkbox in the
+// per-source settings dialog. CardDAV uses the source's existing basic-auth
+// credentials, so this is a pure flag flip (no consent flow needed). OAuth-
+// based sources (Google/Microsoft) get their toggle in 2b.3 alongside
+// incremental consent.
+func (a *App) SetContactSourceWritable(sourceID string, writable bool) error {
+	return a.carddavStore.SetSourceWritable(sourceID, writable)
+}
+
 // SyncContactSource manually triggers a sync for a source
 func (a *App) SyncContactSource(id string) error {
 	return a.carddavSyncer.SyncSource(id)
@@ -175,14 +239,28 @@ func (a *App) SyncAllContactSources() error {
 	return a.carddavSyncer.SyncAllSources()
 }
 
+// ForceSyncContactSource clears the per-addressbook sync tokens for a
+// CardDAV source so the next sync re-fetches every vCard from the
+// server. Used to backfill multi-field data (phones, addresses, org,
+// notes, etc.) for contacts originally synced under a legacy schema
+// where the old parser only stored email + display name. Mirrors
+// App.ForceSyncFolder for mail messages.
+func (a *App) ForceSyncContactSource(sourceID string) error {
+	abs, err := a.carddavStore.ListAddressbooks(sourceID)
+	if err != nil {
+		return fmt.Errorf("failed to list addressbooks: %w", err)
+	}
+	for _, ab := range abs {
+		if err := a.carddavStore.UpdateAddressbookSyncToken(ab.ID, ""); err != nil {
+			return fmt.Errorf("failed to clear sync token for addressbook %s: %w", ab.ID, err)
+		}
+	}
+	return a.carddavSyncer.SyncSource(sourceID)
+}
+
 // GetContactSourceErrors returns all sources that have errors
 func (a *App) GetContactSourceErrors() ([]*carddav.SourceError, error) {
 	return a.carddavStore.GetSourcesWithErrors()
-}
-
-// ClearContactSourceError clears the error for a source
-func (a *App) ClearContactSourceError(id string) error {
-	return a.carddavStore.ClearSourceError(id)
 }
 
 // GetContactSourceStats returns statistics for contact sources
@@ -271,6 +349,48 @@ func (a *App) GetLinkedAccountsForContactSync() ([]LinkedAccountInfo, error) {
 	}
 
 	log.Debug().Int("count", len(result)).Msg("Found linkable accounts for contact sync")
+	return result, nil
+}
+
+// GetCustomOAuthAccounts returns mail accounts that authenticate via a custom
+// ("bring your own app") OIDC provider. Their access token can be reused to
+// authenticate a CardDAV source against the same unified server (e.g. Stalwart),
+// so these populate the OAuth-account picker in the Add CardDAV Source dialog.
+// Unlike GetLinkedAccountsForContactSync (Google People API), this is the DAV path.
+func (a *App) GetCustomOAuthAccounts() ([]LinkedAccountInfo, error) {
+	accounts, err := a.accountStore.List()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list accounts: %w", err)
+	}
+
+	sources, err := a.carddavStore.ListSources()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sources: %w", err)
+	}
+	linkedAccountIDs := make(map[string]bool)
+	for _, source := range sources {
+		if source.AccountID != nil && *source.AccountID != "" {
+			linkedAccountIDs[*source.AccountID] = true
+		}
+	}
+
+	var result []LinkedAccountInfo
+	for _, acc := range accounts {
+		if acc.AuthType != account.AuthOAuth2 {
+			continue
+		}
+		provider, perr := a.credStore.GetOAuthProvider(acc.ID)
+		if perr != nil || provider != customOAuthProviderName {
+			continue
+		}
+		result = append(result, LinkedAccountInfo{
+			AccountID: acc.ID,
+			Email:     acc.Email,
+			Name:      acc.Name,
+			Provider:  provider,
+			IsLinked:  linkedAccountIDs[acc.ID],
+		})
+	}
 	return result, nil
 }
 

@@ -9,10 +9,15 @@ import (
 	"time"
 
 	gomessage "github.com/emersion/go-message"
+	"github.com/hkdb/aerion/internal/email"
 	"github.com/hkdb/aerion/internal/message"
 	"github.com/hkdb/aerion/internal/pgp"
 	"github.com/hkdb/aerion/internal/smime"
 )
+
+// maxConsecutiveNextPartErrors bounds the skip-and-continue recovery in
+// parseMultipartBody so a permanently-erroring reader can't spin forever.
+const maxConsecutiveNextPartErrors = 20
 
 // parseMessageBodyFull parses a raw email and extracts text, HTML, and attachment metadata.
 // Attachments are extracted during the same parsing pass - no re-parsing needed.
@@ -142,8 +147,9 @@ func (e *Engine) parseMessageBodyInternal(raw []byte, messageID string) *ParsedB
 
 	if mr != nil {
 		e.parseMultipartBody(mr, result, messageID)
-	} else {
-		e.parseSinglePartBody(entity, result)
+	}
+	if mr == nil {
+		e.parseSinglePartBody(entity, result, messageID)
 	}
 
 	e.log.Debug().
@@ -159,6 +165,7 @@ func (e *Engine) parseMessageBodyInternal(raw []byte, messageID string) *ParsedB
 // parseMultipartBody parses a multipart message body
 func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *ParsedBody, messageID string) {
 	partIndex := 0
+	consecutiveErrors := 0
 	for {
 		part, err := mr.NextPart()
 		if err != nil {
@@ -169,14 +176,23 @@ func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *Parsed
 			// go-message returns both the part AND an error for unknown CTE.
 			// Mark as unsafe and stop — don't render content with invalid encoding.
 			if gomessage.IsUnknownEncoding(err) {
-				e.log.Warn().Err(err).Int("partsProcessed", partIndex).Msg("Unknown encoding in multipart part, marking unsafe")
+				e.log.Warn().Err(err).Int("partsProcessed", partIndex).Int("attachmentsCollected", len(result.Attachments)).Msg("Unknown encoding in multipart part, marking unsafe")
 				result.UnsafeContent = true
 				result.BodyText = "This message uses non-standard encoding and cannot be displayed safely."
 				return
 			}
-			e.log.Debug().Err(err).Int("partsProcessed", partIndex).Msg("Error reading multipart")
-			break
+			// A single malformed part must not sacrifice the siblings after it: skip
+			// it and keep walking (mirrors email/attachment.go). Bounded so a reader
+			// that errors forever can't spin.
+			consecutiveErrors++
+			e.log.Debug().Err(err).Int("partIndex", partIndex).Int("consecutiveErrors", consecutiveErrors).Msg("Error reading multipart part, skipping")
+			if consecutiveErrors > maxConsecutiveNextPartErrors {
+				e.log.Warn().Err(err).Int("partsProcessed", partIndex).Msg("Too many consecutive multipart errors, stopping walk")
+				break
+			}
+			continue
 		}
+		consecutiveErrors = 0
 		partIndex++
 
 		contentType, params, _ := mime.ParseMediaType(part.Header.Get("Content-Type"))
@@ -187,8 +203,54 @@ func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *Parsed
 			Int("partIndex", partIndex).
 			Str("contentType", contentType).
 			Str("disposition", disposition).
+			Str("contentID", contentID).
 			Str("charset", params["charset"]).
 			Msg("Processing multipart part")
+
+		// TNEF (winmail.dat): Outlook wraps the real attachments inside an
+		// application/ms-tnef container. Decode it and surface the inner files so
+		// they aren't lost; the downloader resolves them by the same Title. Must run
+		// before the disposition=="attachment" branch (winmail.dat has that
+		// disposition). part.Body is already transfer-decoded by go-message.
+		if contentType == "application/ms-tnef" ||
+			(disposition == "attachment" && strings.EqualFold(dispParams["filename"], "winmail.dat")) {
+			raw, _ := io.ReadAll(io.LimitReader(part.Body, maxPartSize))
+			if inner := email.DecodeTNEFAttachments(raw); len(inner) > 0 {
+				for _, ta := range inner {
+					result.Attachments = append(result.Attachments, &message.Attachment{
+						ID:          generateID(),
+						MessageID:   messageID,
+						Filename:    ta.Filename,
+						ContentType: ta.ContentType,
+						Size:        len(ta.Content),
+						IsInline:    false,
+					})
+				}
+				result.HasAttachments = true
+				e.log.Debug().Int("partIndex", partIndex).Int("tnefAttachments", len(inner)).Msg("Classified part: tnef (decoded inner attachments)")
+				continue
+			}
+			// Decode failed/empty: surface winmail.dat itself so the user sees an
+			// attachment rather than nothing.
+			fallbackName := dispParams["filename"]
+			if fallbackName == "" {
+				fallbackName = params["name"]
+			}
+			if fallbackName == "" {
+				fallbackName = "winmail.dat"
+			}
+			result.Attachments = append(result.Attachments, &message.Attachment{
+				ID:          generateID(),
+				MessageID:   messageID,
+				Filename:    fallbackName,
+				ContentType: "application/ms-tnef",
+				Size:        len(raw),
+				IsInline:    false,
+			})
+			result.HasAttachments = true
+			e.log.Debug().Int("partIndex", partIndex).Msg("Classified part: tnef (decode failed/empty, surfaced winmail.dat)")
+			continue
+		}
 
 		// Handle file attachments
 		if disposition == "attachment" {
@@ -200,14 +262,18 @@ func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *Parsed
 			if att != nil {
 				result.Attachments = append(result.Attachments, att)
 			}
+			e.log.Debug().Int("partIndex", partIndex).Str("branch", "attachment").Msg("Classified part")
 			continue
 		}
 
 		// Handle nested multipart
 		if strings.HasPrefix(contentType, "multipart/") {
-			if nestedMr := part.MultipartReader(); nestedMr != nil {
-				e.parseMultipartBody(nestedMr, result, messageID)
+			nestedMr := part.MultipartReader()
+			if nestedMr == nil {
+				e.log.Debug().Int("partIndex", partIndex).Str("contentType", contentType).Msg("Nested multipart has nil reader, subtree skipped")
+				continue
 			}
+			e.parseMultipartBody(nestedMr, result, messageID)
 			continue
 		}
 
@@ -220,6 +286,7 @@ func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *Parsed
 			if att != nil {
 				result.Attachments = append(result.Attachments, att)
 			}
+			e.log.Debug().Int("partIndex", partIndex).Str("branch", "inline-image").Msg("Classified part")
 			continue
 		}
 
@@ -233,6 +300,7 @@ func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *Parsed
 			if att != nil {
 				result.Attachments = append(result.Attachments, att)
 			}
+			e.log.Debug().Int("partIndex", partIndex).Str("branch", "implicit-attachment").Msg("Classified part")
 			continue
 		}
 
@@ -242,7 +310,7 @@ func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *Parsed
 		cte := strings.ToLower(strings.TrimSpace(part.Header.Get("Content-Transfer-Encoding")))
 		if cte != "" && cte != "7bit" && cte != "8bit" && cte != "binary" &&
 			cte != "quoted-printable" && cte != "base64" {
-			e.log.Warn().Str("cte", cte).Int("partIndex", partIndex).Msg("Non-standard Content-Transfer-Encoding, marking unsafe")
+			e.log.Warn().Str("cte", cte).Int("partIndex", partIndex).Int("attachmentsCollected", len(result.Attachments)).Msg("Non-standard Content-Transfer-Encoding, marking unsafe")
 			result.UnsafeContent = true
 			result.BodyText = "This message uses non-standard encoding and cannot be displayed safely."
 			result.BodyHTML = ""
@@ -287,7 +355,7 @@ func (e *Engine) parseMultipartBody(mr gomessage.MultipartReader, result *Parsed
 }
 
 // parseSinglePartBody parses a single-part message body
-func (e *Engine) parseSinglePartBody(entity *gomessage.Entity, result *ParsedBody) {
+func (e *Engine) parseSinglePartBody(entity *gomessage.Entity, result *ParsedBody, messageID string) {
 	contentType, params, _ := mime.ParseMediaType(entity.Header.Get("Content-Type"))
 	e.log.Debug().Str("contentType", contentType).Str("charset", params["charset"]).Msg("Processing single-part message")
 
@@ -298,6 +366,23 @@ func (e *Engine) parseSinglePartBody(entity *gomessage.Entity, result *ParsedBod
 		e.log.Warn().Str("cte", cte).Msg("Non-standard Content-Transfer-Encoding in single-part, marking unsafe")
 		result.UnsafeContent = true
 		result.BodyText = "This message uses non-standard encoding and cannot be displayed safely."
+		return
+	}
+
+	// A single-part body can itself be an attachment (e.g. a DMARC report whose whole
+	// body is application/zip). Mirror parseMultipartBody's classification so it becomes a
+	// downloadable attachment instead of raw text dumped into the body.
+	disposition, dispParams, _ := mime.ParseMediaType(entity.Header.Get("Content-Disposition"))
+	contentID := strings.Trim(entity.Header.Get("Content-ID"), "<>")
+	isNonTextBody := contentType != "" && !strings.HasPrefix(contentType, "text/") &&
+		!isSignaturePart(contentType)
+	if disposition == "attachment" || isNonTextBody {
+		result.HasAttachments = true
+		isInline := disposition == "inline" || contentID != ""
+		att := e.extractAttachmentMetadata(entity, messageID, contentType, dispParams, contentID, isInline)
+		if att != nil {
+			result.Attachments = append(result.Attachments, att)
+		}
 		return
 	}
 

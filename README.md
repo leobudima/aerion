@@ -50,14 +50,17 @@ Although Linux is a first-class citizen here, it also works on:
     - Generic IMAP/SMTP
     - GMail
     - Microsoft 365 / Outlook
-    - Yahoo 🧪
+    - Yahoo 
     - Proton Mail (via Proton Bridge)
     - iCloud Mail 
+    - Mailfence
+    - Murena
     - Fastmail 🧪
     - Zoho Mail 🧪
     - AOL Mail 🧪
     - GMX Mail 
     - Mail.com 🧪
+    - Mailbox.org
 - Unified Inbox (Color Code Accounts)
 - Conversation Threads
 - Basic Removal of Tracking Elements in Mail Content
@@ -69,6 +72,10 @@ Although Linux is a first-class citizen here, it also works on:
 - Auto-Sync when system wakes from suspend
 - Multiple color themes (More to come...)
 - PGP & S/MIME support
+- 1st party extension system with the following shipped:
+    - Calendar (ALPHA) - Disabled by Default
+    - Contacts (ALPHA) - Disabled by Default
+- Custom oAuth2 support for generic IMAP, SMTP, CarDAV, and CalDAV (Tested w/ [Stalwart](https://stalw.art))
 - [Keyboard Shortcuts](docs/KEYBOARD_SHORTCUTS.md)
 
 
@@ -100,6 +107,7 @@ Aerion is CASA Tier 2 Certified by Google's preferred [authorized assessor](http
 - 2026-03-11 ~ Microsoft Verified
 - 2026-04-16 ~ CASA Tier 2 Certified
 - 2025-04-25 ~ Google Verified
+- 2026-06-22 ~ Extension System + Contacts + Calendar (ALPHA)
 
 
 ### 🧑🏻‍💻 Roadmap
@@ -107,9 +115,6 @@ Aerion is CASA Tier 2 Certified by Google's preferred [authorized assessor](http
 
 Confirmed future features:
 
-- Extension/Plugin system with the following shipped disabled:
-    - Calendar
-    - Contacts
 - Post quantum ready encryption
 - Add Mailfence and Startmail templates in add account flow for easier setup
 
@@ -154,7 +159,14 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
         <img src="https://github.com/keithvassallomt.png" width="80"><br>
         <sub><b>keithvassallomt</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Akeithvassallomt+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>16 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Akeithvassallomt+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>20 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/shahiljain">
+        <img src="https://github.com/shahiljain.png" width="80"><br>
+        <sub><b>shahiljain</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ashahiljain+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>6 closed</sub></a>
     </td>
     <td align="center">
       <a href="https://github.com/The-Nyla">
@@ -164,11 +176,11 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AThe-Nyla+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>6 closed</sub></a>
     </td>
     <td align="center">
-      <a href="https://github.com/shahiljain">
-        <img src="https://github.com/shahiljain.png" width="80"><br>
-        <sub><b>shahiljain</b></sub>
+      <a href="https://github.com/lorduskordus">
+        <img src="https://github.com/lorduskordus.png" width="80"><br>
+        <sub><b>lorduskordus</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ashahiljain+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>4 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Alorduskordus+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>4 closed</sub></a>
     </td>
     <td align="center">
       <a href="https://github.com/arnauda-gh">
@@ -184,21 +196,28 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       </a><br>
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aisorropisths+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>4 closed</sub></a>
     </td>
-    <td align="center">
-      <a href="https://github.com/lorduskordus">
-        <img src="https://github.com/lorduskordus.png" width="80"><br>
-        <sub><b>lorduskordus</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Alorduskordus+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>3 closed</sub></a>
-    </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://github.com/jeremy-niles">
-        <img src="https://github.com/jeremy-niles.png" width="80"><br>
-        <sub><b>jeremy-niles</b></sub>
+      <a href="https://github.com/h-bernardo">
+        <img src="https://github.com/h-bernardo.png" width="80"><br>
+        <sub><b>h-bernardo</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ajeremy-niles+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>2 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ah-bernardo+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>3 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/slade991">
+        <img src="https://github.com/slade991.png" width="80"><br>
+        <sub><b>slade991</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aslade991+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>3 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/urdh">
+        <img src="https://github.com/urdh.png" width="80"><br>
+        <sub><b>urdh</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aurdh+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>2 closed</sub></a>
     </td>
     <td align="center">
       <a href="https://github.com/clintre">
@@ -207,6 +226,22 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       </a><br>
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aclintre+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>2 closed</sub></a>
     </td>
+    <td align="center">
+      <a href="https://github.com/jeremy-niles">
+        <img src="https://github.com/jeremy-niles.png" width="80"><br>
+        <sub><b>jeremy-niles</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ajeremy-niles+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>2 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/pj398">
+        <img src="https://github.com/pj398.png" width="80"><br>
+        <sub><b>pj398</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Apj398+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>2 closed</sub></a>
+    </td>
+  </tr>
+  <tr>
     <td align="center">
       <a href="https://github.com/SonGokuSSJ">
         <img src="https://github.com/SonGokuSSJ.png" width="80"><br>
@@ -235,14 +270,72 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       </a><br>
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Awoolkingx+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
+    <td align="center">
+      <a href="https://github.com/BurningTheSky">
+        <img src="https://github.com/BurningTheSky.png" width="80"><br>
+        <sub><b>BurningTheSky</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3ABurningTheSky+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Amjad50">
+        <img src="https://github.com/Amjad50.png" width="80"><br>
+        <sub><b>Amjad50</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AAmjad50+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
   </tr>
   <tr>
+    <td align="center">
+      <a href="https://github.com/kimusan">
+        <img src="https://github.com/kimusan.png" width="80"><br>
+        <sub><b>kimusan</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Akimusan+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/extremeleadprogram">
+        <img src="https://github.com/extremeleadprogram.png" width="80"><br>
+        <sub><b>extremeleadprogram</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aextremeleadprogram+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/in4matix">
+        <img src="https://github.com/in4matix.png" width="80"><br>
+        <sub><b>in4matix</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ain4matix+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
     <td align="center">
       <a href="https://github.com/alfureu">
         <img src="https://github.com/alfureu.png" width="80"><br>
         <sub><b>alfureu</b></sub>
       </a><br>
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aalfureu+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/gpompeo">
+        <img src="https://github.com/gpompeo.png" width="80"><br>
+        <sub><b>gpompeo</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Agpompeo+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Gerti1972">
+        <img src="https://github.com/Gerti1972.png" width="80"><br>
+        <sub><b>Gerti1972</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AGerti1972+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/etbe">
+        <img src="https://github.com/etbe.png" width="80"><br>
+        <sub><b>etbe</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aetbe+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
       <a href="https://github.com/Kartoffelbauer">
@@ -252,41 +345,11 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AKartoffelbauer+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
-      <a href="https://github.com/Gerti1972">
-        <img src="https://github.com/Gerti1972.png" width="80"><br>
-        <sub><b>Gerti1972</b></sub>
+      <a href="https://github.com/cvdmint">
+        <img src="https://github.com/cvdmint.png" width="80"><br>
+        <sub><b>cvdmint</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AGerti1972+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/arodier">
-        <img src="https://github.com/arodier.png" width="80"><br>
-        <sub><b>arodier</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aarodier+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/Dragonsong3k">
-        <img src="https://github.com/Dragonsong3k.png" width="80"><br>
-        <sub><b>Dragonsong3k</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3ADragonsong3k+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/initsuj">
-        <img src="https://github.com/initsuj.png" width="80"><br>
-        <sub><b>initsuj</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ainitsuj+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/martink1337">
-        <img src="https://github.com/martink1337.png" width="80"><br>
-        <sub><b>martink1337</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Amartink1337+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Acvdmint+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
       <a href="https://github.com/budfy">
@@ -296,13 +359,6 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Abudfy+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
-      <a href="https://github.com/cvdmint">
-        <img src="https://github.com/cvdmint.png" width="80"><br>
-        <sub><b>cvdmint</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Acvdmint+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
       <a href="https://github.com/mmzim05">
         <img src="https://github.com/mmzim05.png" width="80"><br>
         <sub><b>mmzim05</b></sub>
@@ -310,92 +366,27 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ammzim05+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
-      <a href="https://github.com/justin-lavelle">
-        <img src="https://github.com/justin-lavelle.png" width="80"><br>
-        <sub><b>justin-lavelle</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ajustin-lavelle+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/frian92">
-        <img src="https://github.com/frian92.png" width="80"><br>
-        <sub><b>frian92</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Afrian92+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/pj398">
-        <img src="https://github.com/pj398.png" width="80"><br>
-        <sub><b>pj398</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Apj398+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/rzgrozt">
-        <img src="https://github.com/rzgrozt.png" width="80"><br>
-        <sub><b>rzgrozt</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Arzgrozt+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/robert0815">
-        <img src="https://github.com/robert0815.png" width="80"><br>
-        <sub><b>robert0815</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Arobert0815+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/AdamHasma">
-        <img src="https://github.com/AdamHasma.png" width="80"><br>
-        <sub><b>AdamHasma</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AAdamHasma+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/Olivetti">
-        <img src="https://github.com/Olivetti.png" width="80"><br>
-        <sub><b>Olivetti</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AOlivetti+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/yuukiw">
-        <img src="https://github.com/yuukiw.png" width="80"><br>
-        <sub><b>yuukiw</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ayuukiw+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
       <a href="https://github.com/bjacobs39">
         <img src="https://github.com/bjacobs39.png" width="80"><br>
         <sub><b>bjacobs39</b></sub>
       </a><br>
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Abjacobs39+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
+  </tr>
+  <tr>
     <td align="center">
-      <a href="https://github.com/makzumi">
-        <img src="https://github.com/makzumi.png" width="80"><br>
-        <sub><b>makzumi</b></sub>
+      <a href="https://github.com/xAptenodyte">
+        <img src="https://github.com/xAptenodyte.png" width="80"><br>
+        <sub><b>xAptenodyte</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Amakzumi+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AxAptenodyte+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
-      <a href="https://github.com/piresio">
-        <img src="https://github.com/piresio.png" width="80"><br>
-        <sub><b>piresio</b></sub>
+      <a href="https://github.com/xJayMorex">
+        <img src="https://github.com/xJayMorex.png" width="80"><br>
+        <sub><b>xJayMorex</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Apiresio+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/Infiniti151">
-        <img src="https://github.com/Infiniti151.png" width="80"><br>
-        <sub><b>Infiniti151</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AInfiniti151+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AxJayMorex+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
       <a href="https://github.com/HugoTheBoss">
@@ -405,34 +396,18 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AHugoTheBoss+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
-      <a href="https://github.com/diederikh">
-        <img src="https://github.com/diederikh.png" width="80"><br>
-        <sub><b>diederikh</b></sub>
+      <a href="https://github.com/SantanuDatta">
+        <img src="https://github.com/SantanuDatta.png" width="80"><br>
+        <sub><b>SantanuDatta</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Adiederikh+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/ai-mind">
-        <img src="https://github.com/ai-mind.png" width="80"><br>
-        <sub><b>ai-mind</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aai-mind+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3ASantanuDatta+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
-      <a href="https://github.com/srabette">
-        <img src="https://github.com/srabette.png" width="80"><br>
-        <sub><b>srabette</b></sub>
+      <a href="https://github.com/m-overlund">
+        <img src="https://github.com/m-overlund.png" width="80"><br>
+        <sub><b>m-overlund</b></sub>
       </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Asrabette+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/Arvid-ctrl">
-        <img src="https://github.com/Arvid-ctrl.png" width="80"><br>
-        <sub><b>Arvid-ctrl</b></sub>
-      </a><br>
-      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AArvid-ctrl+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Am-overlund+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
     <td align="center">
       <a href="https://github.com/CreateWebNZ">
@@ -442,9 +417,178 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
       <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3ACreateWebNZ+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
     </td>
   </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Olivetti">
+        <img src="https://github.com/Olivetti.png" width="80"><br>
+        <sub><b>Olivetti</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AOlivetti+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/ai-mind">
+        <img src="https://github.com/ai-mind.png" width="80"><br>
+        <sub><b>ai-mind</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aai-mind+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/arodier">
+        <img src="https://github.com/arodier.png" width="80"><br>
+        <sub><b>arodier</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Aarodier+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/jakobkukla">
+        <img src="https://github.com/jakobkukla.png" width="80"><br>
+        <sub><b>jakobkukla</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ajakobkukla+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/robert0815">
+        <img src="https://github.com/robert0815.png" width="80"><br>
+        <sub><b>robert0815</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Arobert0815+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/rdmrtn">
+        <img src="https://github.com/rdmrtn.png" width="80"><br>
+        <sub><b>rdmrtn</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ardmrtn+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/PeterKDunn">
+        <img src="https://github.com/PeterKDunn.png" width="80"><br>
+        <sub><b>PeterKDunn</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3APeterKDunn+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/TheEmi">
+        <img src="https://github.com/TheEmi.png" width="80"><br>
+        <sub><b>TheEmi</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3ATheEmi+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/srabette">
+        <img src="https://github.com/srabette.png" width="80"><br>
+        <sub><b>srabette</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Asrabette+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/piresio">
+        <img src="https://github.com/piresio.png" width="80"><br>
+        <sub><b>piresio</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Apiresio+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/diederikh">
+        <img src="https://github.com/diederikh.png" width="80"><br>
+        <sub><b>diederikh</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Adiederikh+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/AdamHasma">
+        <img src="https://github.com/AdamHasma.png" width="80"><br>
+        <sub><b>AdamHasma</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AAdamHasma+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/makzumi">
+        <img src="https://github.com/makzumi.png" width="80"><br>
+        <sub><b>makzumi</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Amakzumi+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/yuukiw">
+        <img src="https://github.com/yuukiw.png" width="80"><br>
+        <sub><b>yuukiw</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ayuukiw+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/IvAzuara">
+        <img src="https://github.com/IvAzuara.png" width="80"><br>
+        <sub><b>IvAzuara</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AIvAzuara+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Dragonsong3k">
+        <img src="https://github.com/Dragonsong3k.png" width="80"><br>
+        <sub><b>Dragonsong3k</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3ADragonsong3k+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/justin-lavelle">
+        <img src="https://github.com/justin-lavelle.png" width="80"><br>
+        <sub><b>justin-lavelle</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ajustin-lavelle+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/martink1337">
+        <img src="https://github.com/martink1337.png" width="80"><br>
+        <sub><b>martink1337</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Amartink1337+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Arvid-ctrl">
+        <img src="https://github.com/Arvid-ctrl.png" width="80"><br>
+        <sub><b>Arvid-ctrl</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AArvid-ctrl+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/frian92">
+        <img src="https://github.com/frian92.png" width="80"><br>
+        <sub><b>frian92</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Afrian92+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Infiniti151">
+        <img src="https://github.com/Infiniti151.png" width="80"><br>
+        <sub><b>Infiniti151</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3AInfiniti151+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/initsuj">
+        <img src="https://github.com/initsuj.png" width="80"><br>
+        <sub><b>initsuj</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ainitsuj+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/ilyonfly">
+        <img src="https://github.com/ilyonfly.png" width="80"><br>
+        <sub><b>ilyonfly</b></sub>
+      </a><br>
+      <a href="https://github.com/hkdb/aerion/issues?q=is%3Aissue+is%3Aclosed+author%3Ailyonfly+-label%3Ainvalid+-label%3Aquestion+-label%3Aduplicate+-reason%3Aduplicate+-reason%3Anot-planned"><sub>1 closed</sub></a>
+    </td>
+  </tr>
 </table>
 
-*Last Updated: 2026-05-20 | Generated by gitrix
+*Last Updated: 2026-07-08 | Generated by gitrix
 
 
 ### 🌐 Translation Contributors
@@ -452,9 +596,9 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
 Special thanks to translation contributors for making Aerion more accessible:
 
 
-<table>
+<table align="left">
   <tr>
-    <td align="center" valign="top" width="160">
+    <td align="center" width="180">
       <a href="https://github.com/lorduskordus">
         <img src="https://github.com/lorduskordus.png" width="80"><br>
         <sub><b>lorduskordus</b></sub>
@@ -462,7 +606,12 @@ Special thanks to translation contributors for making Aerion more accessible:
       <sub>Čeština (cs)</sub><br>
       <sub>&nbsp;</sub>
     </td>
-    <td align="center" valign="top" width="160">
+  </tr>
+</table>
+
+<table align="left">
+  <tr>
+    <td align="center" width="180">
       <a href="https://github.com/Gerti1972">
         <img src="https://github.com/Gerti1972.png" width="80"><br>
         <sub><b>Gerti1972</b></sub>
@@ -470,7 +619,12 @@ Special thanks to translation contributors for making Aerion more accessible:
       <sub>Deutsch (de)</sub><br>
       <sub>&nbsp;</sub>
     </td>
-    <td align="center" valign="top" width="160">
+  </tr>
+</table>
+
+<table align="left">
+  <tr>
+    <td align="center" width="180">
       <a href="https://github.com/dev-inside">
         <img src="https://github.com/dev-inside.png" width="80"><br>
         <sub><b>dev-inside</b></sub>
@@ -478,7 +632,12 @@ Special thanks to translation contributors for making Aerion more accessible:
       <sub>Deutsch (de)</sub><br>
       <sup><small><em>reviewer</em></small></sup>
     </td>
-    <td align="center" valign="top" width="160">
+  </tr>
+</table>
+
+<table align="left">
+  <tr>
+    <td align="center" width="180">
       <a href="https://github.com/StefanSchroeder">
         <img src="https://github.com/StefanSchroeder.png" width="80"><br>
         <sub><b>StefanSchroeder</b></sub>
@@ -486,7 +645,12 @@ Special thanks to translation contributors for making Aerion more accessible:
       <sub>Deutsch (de)</sub><br>
       <sup><small><em>reviewer</em></small></sup>
     </td>
-    <td align="center" valign="top" width="160">
+  </tr>
+</table>
+
+<table align="left">
+  <tr>
+    <td align="center" width="180">
       <a href="https://github.com/freemans32">
         <img src="https://github.com/freemans32.png" width="80"><br>
         <sub><b>freemans32</b></sub>
@@ -494,7 +658,25 @@ Special thanks to translation contributors for making Aerion more accessible:
       <sub>Français (fr)</sub><br>
       <sub>&nbsp;</sub>
     </td>
-    <td align="center" valign="top" width="160">
+  </tr>
+</table>
+
+<table align="left">
+  <tr>
+    <td align="center" width="180">
+      <a href="https://github.com/YacineBoussoufa">
+        <img src="https://github.com/YacineBoussoufa.png" width="80"><br>
+        <sub><b>YacineBoussoufa</b></sub>
+      </a><br>
+      <sub>Italiano (it)</sub><br>
+      <sub>&nbsp;</sub>
+    </td>
+  </tr>
+</table>
+
+<table align="left">
+  <tr>
+    <td align="center" width="180">
       <a href="https://github.com/dexblasnoot">
         <img src="https://github.com/dexblasnoot.png" width="80"><br>
         <sub><b>dexblasnoot</b></sub>
@@ -504,6 +686,22 @@ Special thanks to translation contributors for making Aerion more accessible:
     </td>
   </tr>
 </table>
+
+<table align="left">
+  <tr>
+    <td align="center" width="180">
+      <a href="https://github.com/0jar">
+        <img src="https://github.com/0jar.png" width="80"><br>
+        <sub><b>0jar</b></sub>
+      </a><br>
+      <sub>Tiếng Việt (vi)</sub><br>
+      <sub>&nbsp;</sub>
+    </td>
+  </tr>
+</table>
+
+
+<br clear="left">
 
 
 ### 📑 Terms of Use & Privacy Policy

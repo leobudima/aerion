@@ -185,8 +185,9 @@
       }
     })
 
-    // Listen for message flag changes (e.g., marked as read)
-    EventsOn('messages:flagsChanged', (data: { messageIds: string[], isRead: boolean }) => {
+    // Listen for message read-state changes. Star changes ride their own
+    // `messages:starredChanged` event and don't affect unread counts here.
+    EventsOn('messages:readChanged', (data: { messageIds: string[], isRead: boolean }) => {
       // Update conversations locally instead of reloading from DB
       let anyUpdated = false
       for (const c of conversations) {
@@ -256,7 +257,7 @@
   onDestroy(() => {
     EventsOff('folder:synced')
     EventsOff('messages:updated')
-    EventsOff('messages:flagsChanged')
+    EventsOff('messages:readChanged')
     EventsOff('fts:progress')
     EventsOff('fts:complete')
     EventsOff('fts:indexing')
@@ -1763,7 +1764,7 @@
             <span class="truncate">{group.label}</span>
           </button>
           {#if groupExpanded}
-            {#each group.items as item (item.conversation.threadId)}
+            {#each group.items as item (item.conversation.threadId + '-' + (item.conversation.accountId || accountId || ''))}
               {@const conv = item.conversation}
               {@const index = item.index}
               {@const convAccountId = (conv as any).accountId || accountId}
@@ -1794,7 +1795,7 @@
           {/if}
         {/each}
       {:else}
-        {#each conversations as conv, index (conv.threadId)}
+        {#each conversations as conv, index (conv.threadId + '-' + (conv.accountId || accountId || ''))}
           {@const convAccountId = (conv as any).accountId || accountId}
           {@const convFolderId = (conv as any).folderId || folderId}
           {@const convAccountColor = (conv as any).accountColor || ''}

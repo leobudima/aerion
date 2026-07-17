@@ -76,7 +76,7 @@ func (ops *composeOps) getValidOAuthToken(ctx context.Context, accountID string)
 		Msg("OAuth token expiring soon, refreshing")
 
 	// Refresh the token
-	newTokenResp, err := ops.oauth2Manager.RefreshToken(tokens.Provider, tokens.RefreshToken)
+	newTokenResp, err := ops.refreshOAuthToken(accountID, tokens)
 	if err != nil {
 		log.Error().Err(err).
 			Str("account_id", accountID).
@@ -113,6 +113,28 @@ func (ops *composeOps) getValidOAuthToken(ctx context.Context, accountID string)
 		Msg("OAuth token refreshed successfully")
 
 	return tokens, nil
+}
+
+// refreshOAuthToken obtains a new access token using the stored refresh token,
+// resolving the provider config by name for shipped providers (Google/Microsoft) or
+// from per-account storage for custom ("bring your own app") providers — whose
+// endpoints/creds oauth2.GetProvider can't supply. The default branch is unchanged from
+// the prior inline call, so shipped accounts behave exactly as before.
+func (ops *composeOps) refreshOAuthToken(accountID string, tokens *credentials.OAuthTokens) (*oauth2.TokenResponse, error) {
+	if tokens.Provider != customOAuthProviderName {
+		return ops.oauth2Manager.RefreshToken(tokens.Provider, tokens.RefreshToken)
+	}
+
+	cfg, ok, err := ops.credStore.GetCustomOAuthProvider(accountID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load custom OAuth provider: %w", err)
+	}
+	if !ok {
+		return nil, fmt.Errorf("custom OAuth provider config missing for account")
+	}
+
+	provider := oauth2.CustomProviderConfig(cfg.AuthURL, cfg.TokenURL, cfg.UserinfoEndpoint, cfg.Scopes, cfg.ClientID, cfg.ClientSecret)
+	return ops.oauth2Manager.RefreshTokenWithProvider(provider, tokens.RefreshToken)
 }
 
 // getIMAPCredentials returns IMAP credentials for an account.
@@ -301,6 +323,15 @@ func (ops *composeOps) sendMessage(ctx context.Context, accountID string, msg sm
 		return nil, fmt.Errorf("account not found: %s", accountID)
 	}
 
+	// Receive-only accounts have no SMTP wiring; reject sends before any
+	// further work. The composer's From dropdown already filters these
+	// out, so reaching this branch indicates a stale draft or a programmatic
+	// caller — surface a clear error rather than dialing a non-existent
+	// SMTP server.
+	if acc.NoOutgoingServer {
+		return nil, fmt.Errorf("account %q is configured as receive-only (no outgoing server)", acc.Email)
+	}
+
 	// Build RFC822 message
 	rawMsg, err := msg.ToRFC822()
 	if err != nil {
@@ -362,6 +393,13 @@ func (ops *composeOps) sendMessage(ctx context.Context, accountID string, msg sm
 			smtpConfig.Username = parent.Username
 		}
 	}
+	// Separate SMTP credentials override (Generic provider; gated by
+	// non-empty SMTPUsername at the model layer). Doesn't apply to OAuth
+	// accounts — those keep the bearer-token path below.
+	smtpUsesSeparateCreds := acc.SMTPUsername != "" && acc.AuthType != account.AuthOAuth2
+	if smtpUsesSeparateCreds {
+		smtpConfig.Username = acc.SMTPUsername
+	}
 	smtpConfig.TLSConfig = certificate.BuildTLSConfig(acc.SMTPHost, ops.certStore)
 
 	// Handle authentication based on auth type
@@ -374,11 +412,19 @@ func (ops *composeOps) sendMessage(ctx context.Context, accountID string, msg sm
 		smtpConfig.AuthType = smtp.AuthTypeOAuth2
 		smtpConfig.AccessToken = tokens.AccessToken
 	default:
+		smtpConfig.AuthType = smtp.AuthTypePassword
+		if smtpUsesSeparateCreds {
+			password, passErr := ops.credStore.GetSMTPPassword(accountID)
+			if passErr != nil {
+				return nil, fmt.Errorf("failed to get SMTP password: %w", passErr)
+			}
+			smtpConfig.Password = password
+			break
+		}
 		password, passErr := ops.credStore.GetPassword(accountID)
 		if passErr != nil {
 			return nil, fmt.Errorf("failed to get password: %w", passErr)
 		}
-		smtpConfig.AuthType = smtp.AuthTypePassword
 		smtpConfig.Password = password
 	}
 
@@ -581,11 +627,6 @@ func (a *App) syncSentFolder(accountID string) error {
 	return nil
 }
 
-// saveToSentFolder appends the sent message to the Sent folder via IMAP
-func (a *App) saveToSentFolder(accountID string, acc *account.Account, rawMsg []byte) error {
-	return a.composeOps.saveToSentFolder(a.ctx, accountID, acc, rawMsg)
-}
-
 // PrepareReply prepares a reply message structure from an existing message.
 // mode can be "reply", "reply-all", or "forward"
 func (a *App) PrepareReply(messageID, mode string) (*smtp.ComposeMessage, error) {
@@ -607,17 +648,10 @@ func (a *App) PrepareReply(messageID, mode string) (*smtp.ComposeMessage, error)
 		return nil, fmt.Errorf("failed to get identities: %w", err)
 	}
 
-	// Find the default identity or first identity
-	var fromIdentity *account.Identity
-	for _, id := range identities {
-		if id.IsDefault {
-			fromIdentity = id
-			break
-		}
-	}
-	if fromIdentity == nil && len(identities) > 0 {
-		fromIdentity = identities[0]
-	}
+	// Prefer the identity the original message was addressed to (To/Cc/Bcc), so the
+	// reply goes out from the alias that received the mail (#325); then the default
+	// identity; then the first.
+	fromIdentity := selectReplyFromIdentity(identities, msg)
 	if fromIdentity == nil {
 		acc, _ := a.accountStore.Get(msg.AccountID)
 		if acc != nil {
@@ -727,18 +761,26 @@ func (a *App) PrepareReply(messageID, mode string) (*smtp.ComposeMessage, error)
 	// The frontend can unblock them if the sender is in the image allowlist.
 	quotedHTML = email.BlockRemoteImages(quotedHTML)
 
+	// Plaintext quote source: prefer the original's text part, but fall back to
+	// deriving it from HTML so HTML-only originals still produce a real quote
+	// (msg.BodyText is empty for HTML-only mail). Consumed by the plaintext composer.
+	quotedText := msg.BodyText
+	if strings.TrimSpace(quotedText) == "" && msg.BodyHTML != "" {
+		quotedText = email.ExtractPlainTextFromHTML(msg.BodyHTML)
+	}
+
 	var htmlBody, textBody string
 	if mode == "forward" {
 		// Forward format
 		htmlBody = fmt.Sprintf("<p></p><p></p><p>---------- Forwarded message ----------<br>From: %s<br>Subject: %s<br>Date: %s<br>To: %s</p><p></p>%s",
 			escapeHTML(sender), escapeHTML(msg.Subject), escapeHTML(dateStr), escapeHTML(msg.ToList), quotedHTML)
 		textBody = fmt.Sprintf("\n\n---------- Forwarded message ----------\nFrom: %s\nSubject: %s\nDate: %s\nTo: %s\n\n%s",
-			sender, msg.Subject, dateStr, msg.ToList, msg.BodyText)
+			sender, msg.Subject, dateStr, msg.ToList, quotedText)
 	} else {
 		// Reply format
 		citation := fmt.Sprintf("On %s, %s wrote:", dateStr, sender)
 		htmlBody = fmt.Sprintf("<p></p><p></p><p>%s</p><blockquote type=\"cite\">%s</blockquote>", escapeHTML(citation), quotedHTML)
-		textBody = fmt.Sprintf("\n\n%s\n%s", citation, quoteText(msg.BodyText))
+		textBody = fmt.Sprintf("\n\n%s\n%s", citation, quoteText(quotedText))
 	}
 
 	// Build References header per RFC 5322:
@@ -905,6 +947,33 @@ func (a *App) ReadFileAsAttachment(filePath string) (*ComposerAttachment, error)
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+// selectReplyFromIdentity picks the From identity for a reply/forward: prefer the
+// identity the original message was addressed to (To/Cc/Bcc) so the reply goes out
+// from the alias that received the mail (#325); then the default identity; then the
+// first. Returns nil only when there are no identities.
+func selectReplyFromIdentity(identities []*account.Identity, msg *message.Message) *account.Identity {
+	var recipients []smtp.Address
+	recipients = append(recipients, parseAddressList(msg.ToList)...)
+	recipients = append(recipients, parseAddressList(msg.CcList)...)
+	recipients = append(recipients, parseAddressList(msg.BccList)...)
+	for _, id := range identities {
+		for _, r := range recipients {
+			if strings.EqualFold(strings.TrimSpace(id.Email), strings.TrimSpace(r.Address)) {
+				return id
+			}
+		}
+	}
+	for _, id := range identities {
+		if id.IsDefault {
+			return id
+		}
+	}
+	if len(identities) > 0 {
+		return identities[0]
+	}
+	return nil
+}
 
 // parseAddressList parses a JSON array of addresses or comma-separated string
 func parseAddressList(s string) []smtp.Address {

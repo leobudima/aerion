@@ -30,6 +30,10 @@ export function GetComposeMode() {
   return window['go']['app']['ComposerApp']['GetComposeMode']();
 }
 
+export function GetDarkComposerBody() {
+  return window['go']['app']['ComposerApp']['GetDarkComposerBody']();
+}
+
 export function GetDraft() {
   return window['go']['app']['ComposerApp']['GetDraft']();
 }
@@ -100,6 +104,10 @@ export function ImportRecipientPGPKey(arg1, arg2) {
 
 export function IsFlatpak() {
   return window['go']['app']['ComposerApp']['IsFlatpak']();
+}
+
+export function LogFrontend(arg1, arg2) {
+  return window['go']['app']['ComposerApp']['LogFrontend'](arg1, arg2);
 }
 
 export function LookupHKP(arg1) {

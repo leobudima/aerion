@@ -147,46 +147,66 @@ func (e *AttachmentExtractor) extractFromMultipart(messageID string, mr gomessag
 	return attachments
 }
 
-// extractFromTNEF extracts attachments from a TNEF (winmail.dat) file
-func (e *AttachmentExtractor) extractFromTNEF(messageID string, reader io.Reader) []*AttachmentData {
-	var attachments []*AttachmentData
+// TNEFAttachment is a single attachment decoded from a TNEF (winmail.dat) container.
+type TNEFAttachment struct {
+	Filename    string
+	ContentType string
+	Content     []byte
+}
 
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return attachments
-	}
-
-	// Parse TNEF
+// DecodeTNEFAttachments decodes a TNEF (winmail.dat) container into its inner
+// attachments, returning nil if the bytes are not valid TNEF. This is the single
+// source of TNEF decoding shared by the sync extractor, the on-demand extractor,
+// and the downloader, so the three paths can never diverge on filename/type — the
+// invariant that lets sync store a name the downloader can later resolve.
+func DecodeTNEFAttachments(data []byte) []TNEFAttachment {
 	tnefData, err := tnef.Decode(data)
 	if err != nil {
-		return attachments
+		return nil
 	}
 
-	// Extract attachments
+	var out []TNEFAttachment
 	for _, att := range tnefData.Attachments {
 		filename := att.Title
 		if filename == "" {
 			filename = "attachment"
 		}
 
-		// Try to guess content type from filename
+		// Guess content type from the filename extension.
 		contentType := "application/octet-stream"
 		if guessed := mime.TypeByExtension(filepath.Ext(filename)); guessed != "" {
 			contentType = guessed
 		}
 
-		attachment := &message.Attachment{
-			ID:          uuid.New().String(),
-			MessageID:   messageID,
+		out = append(out, TNEFAttachment{
 			Filename:    filename,
 			ContentType: contentType,
-			Size:        len(att.Data),
-			IsInline:    false,
-		}
+			Content:     att.Data,
+		})
+	}
 
+	return out
+}
+
+// extractFromTNEF extracts attachments from a TNEF (winmail.dat) file
+func (e *AttachmentExtractor) extractFromTNEF(messageID string, reader io.Reader) []*AttachmentData {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil
+	}
+
+	var attachments []*AttachmentData
+	for _, tnefAtt := range DecodeTNEFAttachments(data) {
 		attachments = append(attachments, &AttachmentData{
-			Attachment: attachment,
-			Content:    att.Data,
+			Attachment: &message.Attachment{
+				ID:          uuid.New().String(),
+				MessageID:   messageID,
+				Filename:    tnefAtt.Filename,
+				ContentType: tnefAtt.ContentType,
+				Size:        len(tnefAtt.Content),
+				IsInline:    false,
+			},
+			Content: tnefAtt.Content,
 		})
 	}
 

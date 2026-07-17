@@ -8,15 +8,21 @@
   import AccountIdentityTab from './account/AccountIdentityTab.svelte'
   import AccountServerTab from './account/AccountServerTab.svelte'
   import AccountSecurityTab from './account/AccountSecurityTab.svelte'
+  import AccountContactsHookPanel from '$extensions/contacts/frontend/hooks/AccountContactsHookPanel.svelte'
+  import AccountCalendarHookPanelGoogle from '$extensions/calendar/frontend/hooks/AccountCalendarHookPanelGoogle.svelte'
+  import AccountCalendarHookPanelMicrosoft from '$extensions/calendar/frontend/hooks/AccountCalendarHookPanelMicrosoft.svelte'
+  import { loadAccountSetupHooks } from '$lib/stores/extensionRegistry.svelte'
+  // @ts-ignore - wailsjs path
+  import type { v1 } from '../../../../wailsjs/go/models'
   import { accountStore } from '$lib/stores/accounts.svelte'
   import { oauthStore } from '$lib/stores/oauth.svelte'
   import { addToast } from '$lib/stores/toast'
   import { dialogGuardOpen, dialogGuardClose } from '$lib/stores/dialogGuard'
   import { _ } from '$lib/i18n'
   // @ts-ignore - wailsjs path
-  import { account } from '../../../../wailsjs/go/models'
+  import { account, app } from '../../../../wailsjs/go/models'
   // @ts-ignore - wailsjs path
-  import { GetIdentities } from '../../../../wailsjs/go/app/App'
+  import { GetIdentities, GetAllAccountIdentities } from '../../../../wailsjs/go/app/App'
 
   interface Props {
     /** Whether the dialog is open */
@@ -39,6 +45,15 @@
   // Tab state (for edit mode)
   let activeTab = $state('general')
 
+  // True when editing a generic-provider account (non-Gmail/Outlook/etc).
+  // Controls visibility of the SMTP-authentication UI on the Server tab
+  // and the corresponding hint on the General tab.
+  const KNOWN_PROVIDER_HOSTS = ['gmail.com', 'googlemail.com', 'outlook.com', 'office365.com', 'yahoo.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com']
+  const isGenericProvider = $derived(
+    (editAccount?.imapHost ?? '') !== ''
+    && !KNOWN_PROVIDER_HOSTS.some(h => (editAccount?.imapHost ?? '').includes(h))
+  )
+
   // Form state (for edit mode)
   let name = $state('')
   let displayName = $state('')
@@ -52,6 +67,11 @@
   let smtpHost = $state('')
   let smtpPort = $state(587)
   let smtpSecurity = $state('starttls')
+  let noOutgoingServer = $state(false)
+  let smtpUsername = $state('')
+  let smtpPassword = $state('')
+  let replyForwardIdentityID = $state('')
+  let allIdentityGroups = $state<app.AccountIdentityGroup[]>([])
   let syncPeriodDays = $state('180')
   let syncInterval = $state('30')
   let syncAllFolders = $state(false)
@@ -74,6 +94,13 @@
   let errors = $state<Record<string, string>>({})
   let initialized = $state(false)
 
+  // Post-account-add hook step state. When an account is successfully created
+  // and at least one extension has registered a matching account-setup hook
+  // for the provider, the dialog switches from the wizard to a hooks step.
+  let hookAccount = $state<account.Account | null>(null)
+  let pendingHooks = $state<v1.AccountSetupHookRequest[]>([])
+  let resolvedHooks = $state<Set<string>>(new Set())
+
   // Initialize form when editing
   $effect(() => {
     if (open && editAccount && !initialized) {
@@ -90,6 +117,11 @@
       smtpHost = editAccount.smtpHost
       smtpPort = editAccount.smtpPort
       smtpSecurity = editAccount.smtpSecurity
+      noOutgoingServer = editAccount.noOutgoingServer || false
+      smtpUsername = editAccount.smtpUsername || ''
+      smtpPassword = ''  // never echo a stored password back; blank means "keep existing"
+      replyForwardIdentityID = editAccount.replyForwardIdentityId || ''
+      loadAllIdentityGroups()
       syncPeriodDays = String(editAccount.syncPeriodDays)
       syncInterval = String(editAccount.syncInterval ?? 30)
       syncAllFolders = editAccount.syncAllFolders || false
@@ -118,6 +150,18 @@
       initialized = false
       errors = {}
       password = ''
+      smtpPassword = ''
+      allIdentityGroups = []
+    }
+  })
+
+  // Activate the dialog guard while open: suppresses background refreshes
+  // and routes global keyboard shortcuts (e.g. Ctrl+A) to the dialog inputs
+  // instead of the message list / viewer behind it.
+  $effect(() => {
+    if (open) {
+      dialogGuardOpen()
+      return () => dialogGuardClose()
     }
   })
 
@@ -142,6 +186,23 @@
       console.error('Failed to load display name:', err)
     }
   }
+
+  async function loadAllIdentityGroups() {
+    try {
+      allIdentityGroups = (await GetAllAccountIdentities()) || []
+    } catch (err) {
+      console.error('Failed to load identity groups for Reply/Forward-with picker:', err)
+      allIdentityGroups = []
+    }
+  }
+
+  // Sendable identity-group candidates for the Reply/Forward-with picker:
+  // exclude the account being edited (its own identities can't reply on
+  // its behalf when it's marked no-outgoing) and any other no-outgoing
+  // accounts (their identities aren't sendable either).
+  const availableIdentityGroups = $derived(
+    allIdentityGroups.filter(g => g.account?.id !== editAccount?.id && !g.account?.noOutgoingServer)
+  )
 
   function validate(): boolean {
     errors = {}
@@ -174,6 +235,10 @@
         smtpHost,
         smtpPort,
         smtpSecurity,
+        noOutgoingServer,
+        smtpUsername,
+        smtpPassword, // Empty = keep current (when SMTPUsername unchanged) or skip (when toggle is on)
+        replyForwardIdentityId: replyForwardIdentityID,
         authType,
         syncPeriodDays: Number(syncPeriodDays),
         syncInterval: Number(syncInterval),
@@ -203,7 +268,9 @@
       console.error('Failed to save account:', err)
       addToast({
         type: 'error',
-        message: $_('toast.failedToSaveAccount'),
+        message: String(err).toLowerCase().includes('already exists')
+          ? $_('toast.accountEmailExists')
+          : $_('toast.failedToSaveAccount'),
       })
     } finally {
       saving = false
@@ -213,20 +280,63 @@
   // Handlers for new account wizard (delegated to AccountForm)
   async function handleSubmit(config: account.AccountConfig, oauthCredentials?: OAuthCredentials) {
     let result: account.Account
+    let provider: string
 
-    if (config.authType === 'oauth2' && oauthCredentials) {
-      result = await accountStore.addOAuthAccount(
-        oauthCredentials.provider,
-        config.email,
-        config.name,
-        config.displayName,
-        config.color
-      )
-    } else {
-      result = await accountStore.addAccount(config)
+    const isOAuth = config.authType === 'oauth2' && !!oauthCredentials
+    provider = isOAuth ? oauthCredentials!.provider : 'imap'
+
+    switch (true) {
+      case isOAuth && provider === 'custom':
+        // Generic IMAP + user-supplied OAuth: pass the full config so the user's
+        // IMAP/SMTP server settings are used (not hardcoded provider servers).
+        result = await accountStore.addCustomOAuthAccount(config)
+        break
+      case isOAuth:
+        result = await accountStore.addOAuthAccount(
+          provider,
+          config.email,
+          config.name,
+          config.displayName,
+          config.color
+        )
+        break
+      default:
+        result = await accountStore.addAccount(config)
     }
 
     onSuccess?.(result)
+
+    // After successful account creation, check for matching account-setup hooks
+    // (e.g., Contacts extension's "Also set up contacts" offer). If any exist
+    // and the user has enabled the relevant extensions, switch the dialog to a
+    // hooks step. Otherwise close immediately.
+    const hooks = await loadAccountSetupHooks(provider)
+    if (hooks.length === 0) {
+      open = false
+      onClose?.()
+      return
+    }
+    hookAccount = result
+    pendingHooks = hooks
+    resolvedHooks = new Set()
+  }
+
+  function resolveHook(extensionId: string) {
+    resolvedHooks = new Set([...resolvedHooks, extensionId])
+    if (resolvedHooks.size >= pendingHooks.length) {
+      // All hooks settled — close.
+      hookAccount = null
+      pendingHooks = []
+      resolvedHooks = new Set()
+      open = false
+      onClose?.()
+    }
+  }
+
+  function skipRemainingHooks() {
+    hookAccount = null
+    pendingHooks = []
+    resolvedHooks = new Set()
     open = false
     onClose?.()
   }
@@ -325,7 +435,7 @@
           </Tabs.Trigger>
         </Tabs.List>
 
-        <div class="flex-1 overflow-y-auto mt-4 pr-2" style="max-height: calc(90vh - 220px);">
+        <div class="flex-1 overflow-y-auto mt-4 pl-1 pr-3" style="max-height: calc(90vh - 220px);">
           <Tabs.Content value="general" class="mt-0">
             <AccountGeneralTab
               {editAccount}
@@ -337,6 +447,7 @@
               bind:password
               bind:syncPeriodDays
               {authType}
+              {isGenericProvider}
               {errors}
               {reauthorizing}
               {reauthorizeSuccess}
@@ -367,6 +478,12 @@
               bind:smtpHost
               bind:smtpPort
               bind:smtpSecurity
+              bind:noOutgoingServer
+              bind:smtpUsername
+              bind:smtpPassword
+              bind:replyForwardIdentityID
+              {availableIdentityGroups}
+              {isGenericProvider}
               bind:syncInterval
               bind:readReceiptRequestPolicy
               bind:sentFolderPath
@@ -383,6 +500,10 @@
               onSmtpHostChange={(v) => smtpHost = v}
               onSmtpPortChange={(v) => smtpPort = v}
               onSmtpSecurityChange={(v) => smtpSecurity = v}
+              onNoOutgoingServerChange={(v) => noOutgoingServer = v}
+              onSmtpUsernameChange={(v) => smtpUsername = v}
+              onSmtpPasswordChange={(v) => smtpPassword = v}
+              onReplyForwardIdentityIDChange={(v) => replyForwardIdentityID = v}
               onSyncIntervalChange={(v) => syncInterval = v}
               onReadReceiptPolicyChange={(v) => readReceiptRequestPolicy = v}
               bind:syncAllFolders
@@ -425,9 +546,49 @@
           </div>
         {/if}
       </Tabs.Root>
+    {:else if hookAccount && pendingHooks.length > 0}
+      <!-- Post-Add Mode: Account-Setup Hooks -->
+      <div class="flex-1 overflow-y-auto pl-1 pr-3 pb-4" style="max-height: calc(90vh - 140px);">
+        <p class="text-sm text-muted-foreground mb-3">
+          Your account is added. Set up extras for this account, or skip.
+        </p>
+        {#each pendingHooks as hook (hook.extensionId)}
+          {#if !resolvedHooks.has(hook.extensionId)}
+            {#if hook.component === 'AccountContactsHookPanel'}
+              <AccountContactsHookPanel
+                {hook}
+                accountId={hookAccount.id}
+                accountName={hookAccount.name}
+                onResolved={() => resolveHook(hook.extensionId)}
+              />
+            {/if}
+            {#if hook.component === 'AccountCalendarHookPanelGoogle'}
+              <AccountCalendarHookPanelGoogle
+                {hook}
+                accountId={hookAccount.id}
+                accountName={hookAccount.name}
+                accountEmail={hookAccount.email ?? ''}
+                onResolved={() => resolveHook(hook.extensionId)}
+              />
+            {/if}
+            {#if hook.component === 'AccountCalendarHookPanelMicrosoft'}
+              <AccountCalendarHookPanelMicrosoft
+                {hook}
+                accountId={hookAccount.id}
+                accountName={hookAccount.name}
+                accountEmail={hookAccount.email ?? ''}
+                onResolved={() => resolveHook(hook.extensionId)}
+              />
+            {/if}
+          {/if}
+        {/each}
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-border mt-4">
+          <Button variant="ghost" onclick={skipRemainingHooks}>Skip all</Button>
+        </div>
+      </div>
     {:else}
       <!-- New Account Mode: Wizard -->
-      <div class="flex-1 overflow-y-auto pr-2 pb-4" style="max-height: calc(90vh - 140px);">
+      <div class="flex-1 overflow-y-auto pl-1 pr-3 pb-4" style="max-height: calc(90vh - 140px);">
         <AccountForm
           {editAccount}
           onSubmit={handleSubmit}
