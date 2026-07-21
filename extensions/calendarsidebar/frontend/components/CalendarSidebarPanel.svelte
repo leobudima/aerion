@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount, onDestroy, untrack } from 'svelte'
   import Icon from '@iconify/svelte'
   import { isExtensionEnabled, openExtensionSettings } from '$lib/stores/extensionRegistry.svelte'
   import { setActiveExtension } from '$lib/stores/uiState.svelte'
@@ -140,11 +140,12 @@
       const from = new Date()
       from.setHours(0, 0, 0, 0)
       const to = new Date(from.getTime() + AGENDA_DAYS * 24 * 60 * 60 * 1000)
-      instances = (await Calendar_ListEventsInRange(
+      const raw = (await Calendar_ListEventsInRange(
         visible.map(c => c.id),
         Math.floor(from.getTime() / 1000),
         Math.floor(to.getTime() / 1000),
       )) || []
+      instances = raw.slice().sort((a, b) => a.instanceStartUnix - b.instanceStartUnix)
     } catch (err) {
       error = err instanceof Error ? err.message : String(err)
       instances = []
@@ -183,7 +184,6 @@
   }
 
   onMount(() => {
-    if (calendarEnabled) void loadEvents()
     EventsOn('calendar:sync-complete', () => {
       if (calendarEnabled) void loadEvents()
     })
@@ -193,9 +193,12 @@
     EventsOff('calendar:sync-complete')
   })
 
-  // Re-load when the calendar extension gets enabled while the panel is open.
+  // Load on mount and re-load when the calendar extension gets enabled while
+  // the panel is open. untrack keeps loading/error out of the dependency set —
+  // loadEvents reads and writes `loading`, which would otherwise re-trigger
+  // this effect forever.
   $effect(() => {
-    if (calendarEnabled) void loadEvents()
+    if (calendarEnabled) untrack(() => void loadEvents())
   })
 </script>
 
